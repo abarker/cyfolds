@@ -1,0 +1,10 @@
+#!/bin/bash
+
+python3 setup.py build_ext --inplace "$@"
+
+echo
+#echo "rm $PWD/build  cyfolds.html  cyfolds.c"
+#rm -rf -I build cyfolds.html cyfolds.c
+
+#cythonize -a -i -v cyfolds.pyx
+
