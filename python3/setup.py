@@ -3,16 +3,16 @@ from setuptools import Extension
 from Cython.Build import cythonize
 
 GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
-        "infer_types": True,
-        "annotation_typing": False, # Whether to take type info from PEP484 annotations.
-        "optimize.use_switch": True,
-        "optimize.unpack_method_calls": True,
+        #"infer_types": True,
+        #"annotation_typing": False, # Whether to take type info from PEP484 annotations.
+        #"optimize.use_switch": True,
+        #"optimize.unpack_method_calls": True,
         "language_level": 3,
         }
 
 extensions = [Extension("cyfolds", ["cyfolds.pyx"],
-                        #extra_compile_args=["-O1"],
-                        extra_compile_args=["-O3"],
+                        extra_compile_args=["-O1"],
+                        #extra_compile_args=["-O3"],
                         include_dirs=[],
                         libraries=[],
                         library_dirs=[],
@@ -21,7 +21,7 @@ extensions = [Extension("cyfolds", ["cyfolds.pyx"],
 ext_modules = cythonize(extensions,
                         compiler_directives=GLOBAL_CYTHON_DIRECTIVES,
                         verbose=True,
-                        #force=True,
+                        force=True,
                         )
 
 setup(

@@ -69,6 +69,7 @@ especially on startup.
 # TODO, maybe: Add options to also fold for, while, if, with, and try.  Have a
 # function that is passed the arguments for what to fold which then sets and
 # compiles a global regex to use.  They mostly work now, but not all cases.
+# Also, cdef for Python code.
 
 DEBUG: bint = False
 TESTING: bint = False
@@ -131,12 +132,14 @@ def foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=None):
 
 cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
                                     in_string: cy.int, indent_spaces: cy.int,
-                                    also_for: bint =False, also_while: bint=False):
+                                    also_for:bint=False, also_while:bint=False):
         """Boolean for whether fun or class def begins on the line."""
         #also_for = True
         #also_while = True
         if prev_nested or in_string: return False
         if line[indent_spaces:indent_spaces+4] == "def ": return True
+        # TODO: remember cython enabled here...
+        if line[indent_spaces:indent_spaces+5] == "cdef ": return True
         if line[indent_spaces:indent_spaces+6] == "class ": return True
         if line[indent_spaces:indent_spaces+10] == "async def ": return True
         if also_for and line[indent_spaces:indent_spaces+4] == "for ": return True
