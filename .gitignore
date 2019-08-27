@@ -42,3 +42,8 @@ pip-delete-this-directory.txt
 # Mypy type-checker cache.
 .mypy_cache
 
+# Cython --inplace build dir, generated C code, and generated .so executables.
+build
+.c
+.so
+
