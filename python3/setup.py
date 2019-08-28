@@ -9,8 +9,8 @@ from setuptools import Extension
 from Cython.Build import cythonize
 
 GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
+        "annotation_typing": True, # Type info from PEP484 annotations, keep True.
         "infer_types": True,
-        "annotation_typing": True, # Whether to take type info from PEP484 annotations.
         "optimize.use_switch": True,
         "optimize.unpack_method_calls": True,
         "language_level": 3,

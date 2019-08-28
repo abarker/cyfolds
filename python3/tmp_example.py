@@ -555,7 +555,6 @@ def set_cropped_metadata(input_doc, output_doc, metadata_info):
 
     return already_cropped_by_this_program
 
-
 def apply_crop_list(crop_list, input_doc, page_nums_to_crop,
                                           already_cropped_by_this_program):
     """Apply the crop list to the pages of the input PdfFileReader object."""

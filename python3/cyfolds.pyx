@@ -16,8 +16,8 @@ Notes:
 * Lines number from zero in Python buffer object, but vim uses 1-based
   numbering.
 
-* The vim python API docs (same as ':help python'):
-  https://docs.huihoo.com/vim/7.2/if_pyth.htm
+* The vim Python API docs (same as ':help python'):
+    https://vimhelp.org/if_pyth.txt.html
 
 Theory
 ------
@@ -64,151 +64,35 @@ to compute the hash is less than the time to recompute the data up to the line
 needed.  Empirically, this does significantly speed up the processing,
 especially on startup.
 
-:undolist
-
-:changes
-
-:echo undotree()  # This is the one, returns a dict!  Look at keys and entried.
-:help undotree()
-
-fun s:GetChangeFromSaveNr(saved)
-	for item in undotree().entries
-		if has_key(item, "save") && item.save == a:saved
-			let save_change = item.seq
-			break
-		endif
-	endfor
-	return save_change
-endfun
-
-To get the time of a change:
- :echo undotree().entries[0].time     zero element of list, time key
-
-
-Passing dicts to python?
-------------------------
-
-These are general docs of Python interface to vim (same as :help python)
-    https://vimhelp.org/if_pyth.txt.html
-    To facilitate bi-directional interface, you can use pyeval() and py3eval()
-    functions to evaluate Python expressions and pass their values to Vim
-    script.  pyxeval() is also available.
-
-    The Python value "None" is converted to v:none.
-
-Answer in above docs:
-    vim.bindeval objects
-
-vim.vars                                                python-vars
-vim.vvars                                               python-vvars
-        Dictionary-like objects holding dictionaries with global (g:) and
-        vim (v:) variables respectively. Identical to vim.bindeval("g:"),
-        but faster.
-
-7. vim.bindeval objects                         python-bindeval-objects
-
-vim.Dictionary object                           python-Dictionary
-    Dictionary-like object providing access to vim Dictionary type.
-    Attributes:
-        Attribute  Description
-        locked     One of                       python-.locked
-                    Value           Description
-                    zero            Variable is not locked
-                    vim.VAR_LOCKED  Variable is locked, but can be unlocked
-                    vim.VAR_FIXED   Variable is locked and can't be unlocked
-                   Read-write. You can unlock locked variable by assigning
-                   True or False to this attribute. No recursive locking
-                   is supported.
-        scope      One of
-                    Value              Description
-                    zero               Dictionary is not a scope one
-                    vim.VAR_DEF_SCOPE  g: or l: dictionary
-                    vim.VAR_SCOPE      Other scope dictionary,
-                                       see internal-variables
-    Methods (note: methods do not support keyword arguments):
-        Method      Description
-        keys()      Returns a list with dictionary keys.
-        values()    Returns a list with dictionary values.
-        items()     Returns a list of 2-tuples with dictionary contents.
-        update(iterable), update(dictionary), update(**kwargs)
-                    Adds keys to dictionary.
-        get(key[, default=None])
-                    Obtain key from dictionary, returning the default if it is
-                    not present.
-        pop(key[, default])
-                    Remove specified key from dictionary and return
-                    corresponding value. If key is not found and default is
-                    given returns the default, otherwise raises KeyError.
-        popitem()
-                    Remove random key from dictionary and return (key, value)
-                    pair.
-        has_key(key)
-                    Check whether dictionary contains specified key, similar
-                    to `key in dict`.
-
-        __new__(), __new__(iterable), __new__(dictionary), __new__(update)
-                    You can use vim.Dictionary() to create new vim
-                    dictionaries. d=vim.Dictionary(arg) is the same as
-                    d=vim.bindeval('{}');d.update(arg). Without arguments
-                    constructs empty dictionary.
-
-    Examples:
-        d = vim.Dictionary(food="bar")          # Constructor
-        d['a'] = 'b'                            # Item assignment
-        print d['a']                            # getting item
-        d.update({'c': 'd'})                    # .update(dictionary)
-        d.update(e='f')                         # .update(**kwargs)
-        d.update((('g', 'h'), ('i', 'j')))      # .update(iterable)
-        for key in d.keys():                    # .keys()
-        for val in d.values():                  # .values()
-        for key, val in d.items():              # .items()
-        print isinstance(d, vim.Dictionary)     # True
-        for key in d:                           # Iteration over keys
-        class Dict(vim.Dictionary):             # Subclassing
-
-    Note: when iterating over keys you should not modify dictionary.
-
-vim.List object                                 python-List
-    Sequence-like object providing access to vim List type.
-    Supports .locked attribute, see python-.locked. Also supports the
-    following methods:
-        Method          Description
-        extend(item)    Add items to the list.
-
-        __new__(), __new__(iterable)
-                        You can use vim.List() to create new vim lists.
-                        l=vim.List(iterable) is the same as
-                        l=vim.bindeval('[]');l.extend(iterable). Without
-                        arguments constructs empty list.
-    Examples:
-        l = vim.List("abc")             # Constructor, result: ['a', 'b', 'c']
-        l.extend(['abc', 'def'])        # .extend() method
-        print l[1:]                     # slicing
-        l[:0] = ['ghi', 'jkl']          # slice assignment
-        print l[0]                      # getting item
-        l[0] = 'mno'                    # assignment
-        for i in l:                     # iteration
-        print isinstance(l, vim.List)   # True
-        class List(vim.List):           # Subclassing
-
-
-Basic dirty cache detect (save fancy for later)
------------------------------------------------
-
-To get timestamp of last entry in the undotree:
-
-    :undotree().entries[undotree().seq_cur].time
-
 """
 
 # TODO, maybe: Add options to also fold for, while, if, with, and try.  Have a
 # function that is passed the arguments for what to fold which then sets and
 # compiles a global regex to use.  They mostly work now, but not all cases.
-# Also, cdef for Python code.
+# Also, cdef for Cython code.
 
 # TODO: Make sure line ends in semicolon at end of fundef, while, etc., just
 # as an extra check that's easy to do.  Otherwise, don't do new fold.
 
+# TODO: Find faster way to tell if buffer changed, i.e., if cache is dirty.
+# The `:changes` command and `undotree()` dict do not seem to have enough
+# info or get updated at the right time.
+
+# TODO: If you had the line numbers of changes you could speed up the updates
+# by jumping ahead (keep enough state data) and start there and keep going
+# forward past last change spot until the current agrees with the saved.
+#
+# Why not just save a copy of the buffer?  Then go through and find the changed
+# lines.  Or save a hash of each line if too much memory to save the whole
+# thing.  Or blocks of 10 lines, maybe; line number mod whatever number.
+# But is this maybe slower than just computing the folds over the whole file
+# (which is pretty fast)?
+
+# TODO: If you set the foldlevel increment to a really high number for things
+# like for, while, and if then you might be able to define the initial state of
+# the folds, open or closed, by setting foldlevel.  See :help foldlevelstart.
+
+# Consider
 DEBUG: bint = False
 TESTING: bint = False
 USE_CACHING = True
@@ -234,11 +118,11 @@ from cpython cimport bool # Use Python bool.
 from cython import bint # C int coerced to bool.
 #from cpython cimport int # Use Python int.
 
-prev_buffer_hash: cy.int = 0
+prev_buffer_hash: cy.int = -1
 foldlevel_cache: List[cy.int] = [] # Cache of all the computed foldlevel values.
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
 
-def foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=None):
+def get_foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
     zero.  The `test_buffer` if for passing in a mock of the `vim.current.buffer`
@@ -255,7 +139,7 @@ def foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=None):
         buffer_lines = test_buffer
 
     # Convert the buffer into an ordinary list of strings, for easier Cython.
-    buffer_lines = [i for i in buffer_lines]
+    buffer_lines = tuple(i for i in buffer_lines)
     assert buffer_lines
 
     if USE_CACHING:
@@ -266,10 +150,12 @@ def foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=None):
         dirty_cache = True
 
     if dirty_cache:
+        #print("updating folds........................................................begin")
         # Get a new foldlevel_cache list and recalculate all the foldlevels.
         foldlevel_cache = [0] * len(buffer_lines)
         calculate_foldlevels(foldlevel_cache, buffer_lines, shiftwidth)
         recalcs += 1
+        #print("done with folds.......................................................done", recalcs)
 
     foldlevel = foldlevel_cache[lnum]
     #foldlevel = min(foldlevel, foldnestmax)

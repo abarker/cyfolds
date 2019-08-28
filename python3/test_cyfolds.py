@@ -13,7 +13,7 @@ then run this program.  More info will be printed as the program runs.
 
 """
 import cyfolds
-from cyfolds import foldlevel
+from cyfolds import get_foldlevel
 import sys
 
 cyfolds.TESTING = True
@@ -34,12 +34,12 @@ x = "xxx
      yy"
 '''
 
-# Note the foldlevel fun is passed to vim, which numbers lines from 1.
+# Note the get_foldlevel fun is passed to vim, which numbers lines from 1.
 # BUT the vim/python buffer vim.current.buffer IS indexed from zero.
-# For that reason the prints of lines below do not match the foldlevel calls.
+# For that reason the prints of lines below do not match the get_foldlevel calls.
 
 def print_results_for_file(filename):
-    """Run the foldlevel calculator on the file and print the results."""
+    """Run the get_foldlevel calculator on the file and print the results."""
     print()
     print("="*5, filename, "="*19)
     print()
@@ -50,7 +50,7 @@ def print_results_for_file(filename):
     test_data = test_data.splitlines()
 
     for i in range(1,len(test_data)+1):
-        flevel = foldlevel(i, 3, test_buffer=test_data)
+        flevel = get_foldlevel(i, 3, test_buffer=test_data)
         print("{:4}{:3}:".format(i-1, flevel), test_data[i-1])
 
 
@@ -60,7 +60,7 @@ def run_for_test_string():
 
     for i in range(1,15):
         print(lines[i-1], end="")
-        print("\t\t#", foldlevel(i, 3, test_buffer=lines))
+        print("\t\t#", get_foldlevel(i, 3, test_buffer=lines))
 
 
 if __name__ == "__main__":
