@@ -1,6 +1,4 @@
 
-# TODO: funs without docstrings fail.
-
 def handle_options_on_cropped_file(
         input_doc_fname,
         output_doc_fname):
@@ -25,35 +23,10 @@ while var == value:
     print("While loop.")
     print("Two lines.")
 
-def main_crop(
-        ):
-    """Process command-line arguments, do the PDF processing, and then perform
-    final processing on the filenames."""
-
-    parsed_args = parse_command_line_arguments(cmd_parser)
-
-    def egg():
-        parsed_args
-        pass # single line doesn't fold...
-
-    def egg_single_line():
-        pass
-
-    # Process some of the command-line arguments (also sets
-    # args globally).
-    input_doc_fname, fixed_input_doc_fname, output_doc_fname = (
-        process_command_line_arguments(parsed_args))
-
-    x = 4
-    y = 4
-
 
 def x():
     def y():
         def z():
-            "This one doesn't fold right, but apparently a vim bug because the
-            raw foldlevel numbers look correct.  Also fails with docstring after
-            y and some code after y and before z"
             x = 4
             y = 5
 

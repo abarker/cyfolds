@@ -2,9 +2,14 @@
 
 python3 setup.py build_ext --inplace "$@"
 
-echo
-#echo "rm $PWD/build  cyfolds.html  cyfolds.c"
-#rm -rf -I build cyfolds.html cyfolds.c
+echo "Cleanup:"
+echo "   rm -rf $PWD/build  cyfolds.html  cyfolds.c"
+echo -n "Run the remove? [yn] "
+read yesno
+if yesno == "y" || yesno == "Y"; then
+    rm -rf build cyfolds.html cyfolds.c
+fi
 
-#cythonize -a -i -v cyfolds.pyx
+# This command also works.
+#cythonize -a -i cyfolds.pyx
 

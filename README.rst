@@ -1,29 +1,33 @@
 .. default-role:: code
 
-pytest-helper
-=============
+Cyfolds
+=======
 
-The pytest-helper package allows modules, both inside and outside of packages,
-to be made self-testing with `pytest <http://pytest.org>`_ when the module
-itself is executed as a script.  The test functions that are run can be in the
-same module or they can be in a module in a separate test directory.
-Standalone testing modules can also set up so that pytest actually runs them
-when they are executed.
+Cyfolds is a vim plugin to calculate syntax-aware folds for Python files.  When
+folding functions or classes it leaves the docstring unfolded for a better
+overview of the file.  The full file is parsed to find the syntax.  The plugin
+is written in Cython and is compiled to give faster performance.
 
-Several additional utility functions are provided to make it easier to set up
-and run unit tests.  For example, there is a function to simplify making
-modifications to the Python search path so tests are discovered.  One of the
-useful features of the package is that relative pathnames are always
-interpreted relative to the directory of the file in which they occur (i.e.,
-not relative to the Python CWD which can vary depending on how the python
-interpreter is invoked).
+All the folds are calculated in one pass over the file, and the values are
+cached.  The cache values are used if there have been no changes in the file.
+See the Cython code file for more details of the algorithm.
 
-For examples and full documentation, see https://abarker.github.io/pytest-helper
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installation
+------------
 
-The easiest way to install is to install from PyPI using pip:
+When using a plugin manager like pathogen just clone this directory into the
+``bundle`` directory.
 
-.. code-block:: bash
+Configuration
+-------------
 
-   pip install pytest-helper
+Turn on folding in vim.  There are currently no configuration options.
+
+Folding is turned off in insert mode, and updated on leaving insert mode.  This
+is because in insert mode vim updates the folds on every character, which is
+slow.
+
+The `vim-stay` plugin, which persists
+the state of the folds across vim invocations, is recommended to use along with
+this plugin. Files open slightly faster since the initial folds are read from the save file.
 
