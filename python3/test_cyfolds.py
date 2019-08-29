@@ -12,6 +12,10 @@ For even more info, turn on the DEBUG flag in `cyfolds.pyx`, recompile, and
 then run this program.  More info will be printed as the program runs.
 
 """
+
+# TODO: You currently need to switch to hash-computed dirty bit for cache, since
+# no changes object to pass in.
+
 import cyfolds
 from cyfolds import get_foldlevel
 import sys
@@ -50,7 +54,7 @@ def print_results_for_file(filename):
     test_data = test_data.splitlines()
 
     for i in range(1,len(test_data)+1):
-        flevel = get_foldlevel(i, 3, test_buffer=test_data)
+        flevel = get_foldlevel(i, "", 3, test_buffer=test_data)
         print("{:4}{:3}:".format(i-1, flevel), test_data[i-1])
 
 
@@ -60,7 +64,7 @@ def run_for_test_string():
 
     for i in range(1,15):
         print(lines[i-1], end="")
-        print("\t\t#", get_foldlevel(i, 3, test_buffer=lines))
+        print("\t\t#", get_foldlevel(i, "", 3, test_buffer=lines))
 
 
 if __name__ == "__main__":

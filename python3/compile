@@ -1,12 +1,13 @@
 #!/bin/bash
 
-python3 setup.py build_ext --inplace "$@"
+python3 setup.py build_ext --inplace "$@" || exit 1
 
-echo "Cleanup:"
-echo "   rm -rf $PWD/build  cyfolds.html  cyfolds.c"
+echo
+echo "Cleanup unneeded files:"
+echo "   rm -rf build  cyfolds.html  cyfolds.c"
 echo -n "Run the remove? [yn] "
 read yesno
-if yesno == "y" || yesno == "Y"; then
+if [ $yesno == "y" ] || [ $yesno == "Y" ]; then
     rm -rf build cyfolds.html cyfolds.c
 fi
 

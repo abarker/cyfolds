@@ -18,6 +18,11 @@ Installation
 When using a plugin manager like pathogen just clone this directory into the
 ``bundle`` directory.
 
+The Cython code needs to be compiled before use.  Go to the cloned repo and
+into the ``python3`` directory.   Run the Bash script ``compile`` that is in
+that directory (if you cannot run Bash, you can run ``python3 setup.py
+build_ext --inplace`` directly from the command line).
+
 Configuration
 -------------
 
@@ -27,7 +32,13 @@ Folding is turned off in insert mode, and updated on leaving insert mode.  This
 is because in insert mode vim updates the folds on every character, which is
 slow.
 
-The `vim-stay` plugin, which persists
-the state of the folds across vim invocations, is recommended to use along with
-this plugin. Files open slightly faster since the initial folds are read from the save file.
+The vim-stay plugin, which persists the state of the folds across vim
+invocations, can be used along with this plugin.
+
+If you use the FastFolds plugin, consider turning it off for Python files when
+using Cyfolds.  This is because FastFolds remaps the folding keys to call
+update each time, which can cause a slight lag in the time to open and close a
+fold.  The command is::
+
+   let g:fastfold_skip_filetypes=['python']
 

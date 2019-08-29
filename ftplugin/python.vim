@@ -17,9 +17,14 @@ function! GetPythonFoldPython(lnum)
       let vimhome = $HOME."/.vim"
    endif
 
+   "let g:hash_for_changes = 1
    let g:pyfoldlevel = '' " Global var for return value.
+   if !exists("g:hash_for_changes")
+      let g:hash_for_changes = 0
+   endif
+   let g:cur_undo_sequence = undotree().seq_cur
 
-python3 << ---------------------------PythonCode----------------------------------
+   python3 << ---------------------------PythonCode----------------------------------
 
 import sys
 from os.path import normpath, join
@@ -37,8 +42,14 @@ lnum = vim.eval("a:lnum")
 shiftwidth = vim.eval("&shiftwidth")
 foldnestmax = vim.eval("&foldnestmax")
 
+hash_for_changes = int(vim.eval("g:hash_for_changes"))
+if hash_for_changes:
+   cur_undo_sequence = None
+else:
+    cur_undo_sequence = vim.eval("g:cur_undo_sequence")
+
 # Call the Python/Cython function to do the computation.
-computed_foldlevel = get_foldlevel(lnum, foldnestmax, shiftwidth)
+computed_foldlevel = get_foldlevel(lnum, cur_undo_sequence, foldnestmax, shiftwidth)
 
 # Set the return value as a global vim variable, to pass it back to vim.
 vim.command("let g:pyfoldlevel = {}".format(computed_foldlevel))

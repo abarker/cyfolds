@@ -121,13 +121,14 @@ from cython import bint # C int coerced to bool.
 prev_buffer_hash: cy.int = -1
 foldlevel_cache: List[cy.int] = [] # Cache of all the computed foldlevel values.
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
+foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel (debugging)
 
-def get_foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=None):
+def get_foldlevel(lnum: int, cur_undo_sequence:str=None, foldnestmax:int=20, shiftwidth:int=4, test_buffer=None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
     zero.  The `test_buffer` if for passing in a mock of the `vim.current.buffer`
     object in debugging and testing."""
-    global foldlevel_cache, prev_buffer_hash, recalcs
+    global foldlevel_cache, prev_buffer_hash, recalcs, foldfun_calls
 
     foldnestmax = int(foldnestmax)
     shiftwidth = int(shiftwidth)
@@ -143,12 +144,16 @@ def get_foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=Non
     assert buffer_lines
 
     if USE_CACHING:
-        buffer_hash = hash(tuple(buffer_lines))
+        if cur_undo_sequence is None:
+            buffer_hash = hash(tuple(buffer_lines))
+        else:
+            buffer_hash = cur_undo_sequence
         dirty_cache = buffer_hash != prev_buffer_hash
         prev_buffer_hash = buffer_hash
     else:
         dirty_cache = True
 
+    #print("updating folds========================================================begin", foldfun_calls)
     if dirty_cache:
         #print("updating folds........................................................begin")
         # Get a new foldlevel_cache list and recalculate all the foldlevels.
@@ -159,6 +164,7 @@ def get_foldlevel(lnum: int, foldnestmax: int, shiftwidth:int=4, test_buffer=Non
 
     foldlevel = foldlevel_cache[lnum]
     #foldlevel = min(foldlevel, foldnestmax)
+    foldfun_calls += 1
     return foldlevel
 
 cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
