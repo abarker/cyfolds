@@ -5,12 +5,14 @@ Cyfolds
 
 Cyfolds is a vim plugin to calculate syntax-aware folds for Python files.  When
 folding functions or classes it leaves the docstring unfolded for a better
-overview of the file.  The full file is parsed to find the syntax.  The plugin
-is written in Cython and is compiled to give faster performance.
+overview of the file.  The full file is parsed to find the syntax, so no
+heuristics are needed.  The plugin is written in Cython and is compiled to
+optimized C for fast performance.
 
 All the folds are calculated in one pass over the file, and the values are
-cached.  The cache values are used if there have been no changes in the file.
-See the Cython code file for more details of the algorithm.
+cached.  The per-buffer cached values are used if there have been no changes in
+the respective buffer since the last call.  See the Cython code file for more
+details of the algorithm.
 
 Installation
 ------------
@@ -18,22 +20,39 @@ Installation
 When using a plugin manager like pathogen just clone this directory into the
 ``bundle`` directory.
 
-The Cython code needs to be compiled before use.  Go to the cloned repo and
-into the ``python3`` directory.   Run the Bash script ``compile`` that is in
-that directory (if you cannot run Bash, you can run ``python3 setup.py
-build_ext --inplace`` directly from the command line).
+The Cython code needs to be compiled before use.  The Python build requirements
+are cython and setuptools.  This command will install them::
+
+   pip3 install cython setuptools --user
+
+Go to the cloned repo and into the ``python3`` directory.   Run the Bash script
+``compile`` that is in that directory (if you cannot run Bash, you can run
+``python3 setup.py build_ext --inplace`` directly from the command line).
 
 Configuration
 -------------
 
-Turn on folding in vim.  There are currently no configuration options.
+Turn on folding in vim.
 
-Folding is turned off in insert mode, and updated on leaving insert mode.  This
-is because in insert mode vim updates the folds on every character, which is
-slow.
+Cyfolds turns off folding in insert mode and restores it on leaving insert
+mode.  This is because in insert mode vim updates the folds on every character,
+which is slow.  It is also necessary for using the undotree to detect file
+changes since the updates need to be made after leaving insert mode.  There is
+an option to switch to using a Python hash to detect changes, by setting::
+
+   g:hash_for_changes=1
+
+Interaction with other plugins
+------------------------------
+
+vim-stay
+~~~~~~~~
 
 The vim-stay plugin, which persists the state of the folds across vim
 invocations, can be used along with this plugin.
+
+FastFolds
+~~~~~~~~~
 
 If you use the FastFolds plugin, consider turning it off for Python files when
 using Cyfolds.  This is because FastFolds remaps the folding keys to call

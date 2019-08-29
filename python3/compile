@@ -7,7 +7,7 @@ echo "Cleanup unneeded files:"
 echo "   rm -rf build  cyfolds.html  cyfolds.c"
 echo -n "Run the remove? [yn] "
 read yesno
-if [ $yesno == "y" ] || [ $yesno == "Y" ]; then
+if [ "$yesno" == "y" ] || [ "$yesno" == "Y" ]; then
     rm -rf build cyfolds.html cyfolds.c
 fi
 

@@ -64,35 +64,49 @@ to compute the hash is less than the time to recompute the data up to the line
 needed.  Empirically, this does significantly speed up the processing,
 especially on startup.
 
+Possible enhancements
+---------------------
+
+* If you set the foldlevel bump to a really high number for things like for,
+  while, and if then you should be able to syntactically define the initial state
+  of the folds, open or closed, by setting foldlevel.  See :help foldlevelstart.
+
+* Add options to also fold for, while, if, with, and try.  Have a function that
+  is passed the arguments for what to fold which then sets and compiles a global
+  regex to use.  They mostly work now, but not all cases (at least not tested).
+  Also, cdef for Cython code::
+
+     let g:cyfolds_keywords_closed_by_default = ['def', 'async def', 'class', 'cdef']
+     let g"cyfolds_keywords_open_by_default = ['if', 'for', 'while']
+
+* Find a faster way to tell if the buffer changed, i.e., if the cache is dirty.
+  If you had the precise line numbers of all the changes you could speed up the
+  updates by jumping ahead (keep enough state data) and start there.  Keep going
+  forward past last change spot until the current foldlevel agrees with the
+  previous one for lines not changed.
+
+  You could just save a copy of the buffer.  Then go through and find the
+  changed lines.  Or save a hash of each line if it's too much memory to save
+  the whole thing.  Or maybe hash blocks of, say, 10 lines and take line
+  numbers mod that number.  But is this maybe slower than just computing the
+  folds over the whole file (which is pretty fast)?  You need to at least
+  search or hash over the whole file to tell what changed.
+
+* Define an autocmd on the event of a buffer closing that deletes its foldlevel
+  cache.  Currently they are never deleted, wasting some memory.
+
+* Maybe have an option to number indents by number of spaces.  Might be more
+  line what some people expect, such as when a function definition is nested
+  inside a for loop.
+
+* Make sure line ends in semicolon at end of fundef, while, etc., just as an
+  extra check that's easy to do.  Otherwise, don't do new fold.
+
 """
 
-# TODO, maybe: Add options to also fold for, while, if, with, and try.  Have a
-# function that is passed the arguments for what to fold which then sets and
-# compiles a global regex to use.  They mostly work now, but not all cases.
-# Also, cdef for Cython code.
+# per-buffer cache
+# no neg on dedent
 
-# TODO: Make sure line ends in semicolon at end of fundef, while, etc., just
-# as an extra check that's easy to do.  Otherwise, don't do new fold.
-
-# TODO: Find faster way to tell if buffer changed, i.e., if cache is dirty.
-# The `:changes` command and `undotree()` dict do not seem to have enough
-# info or get updated at the right time.
-
-# TODO: If you had the line numbers of changes you could speed up the updates
-# by jumping ahead (keep enough state data) and start there and keep going
-# forward past last change spot until the current agrees with the saved.
-#
-# Why not just save a copy of the buffer?  Then go through and find the changed
-# lines.  Or save a hash of each line if too much memory to save the whole
-# thing.  Or blocks of 10 lines, maybe; line number mod whatever number.
-# But is this maybe slower than just computing the folds over the whole file
-# (which is pretty fast)?
-
-# TODO: If you set the foldlevel increment to a really high number for things
-# like for, while, and if then you might be able to define the initial state of
-# the folds, open or closed, by setting foldlevel.  See :help foldlevelstart.
-
-# Consider
 DEBUG: bint = False
 TESTING: bint = False
 USE_CACHING = True
@@ -103,14 +117,15 @@ except ImportError:
     TESTING = True
 
 if TESTING:
-    # These classes mock vim.buffer.current for testing.
+    # These classes mock vim.buffer.current, for testing.
     class Current:
         buffer = []
     class vim:
         current = Current
 
 from collections import namedtuple
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Dict, Array
+import array # https://cython.readthedocs.io/en/latest/src/tutorial/array.html
 import numpy as np
 
 import cython as cy
@@ -118,17 +133,18 @@ from cpython cimport bool # Use Python bool.
 from cython import bint # C int coerced to bool.
 #from cpython cimport int # Use Python int.
 
-prev_buffer_hash: cy.int = -1
-foldlevel_cache: List[cy.int] = [] # Cache of all the computed foldlevel values.
+prev_buffer_hash: Dict[cy.int, cy.int] = {} # Hashes indexed by buffer number.
+foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Cache of all the computed foldlevel values.
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
 foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel (debugging)
 
-def get_foldlevel(lnum: int, cur_undo_sequence:str=None, foldnestmax:int=20, shiftwidth:int=4, test_buffer=None):
+def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:str=None,
+                  foldnestmax:int=20, shiftwidth:int=4, test_buffer=None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
     zero.  The `test_buffer` if for passing in a mock of the `vim.current.buffer`
     object in debugging and testing."""
-    global foldlevel_cache, prev_buffer_hash, recalcs, foldfun_calls
+    global foldlevel_cache, prev_buffer_hash, recalcs, foldfun_calls # TODO global not needed for dict
 
     foldnestmax = int(foldnestmax)
     shiftwidth = int(shiftwidth)
@@ -148,21 +164,23 @@ def get_foldlevel(lnum: int, cur_undo_sequence:str=None, foldnestmax:int=20, shi
             buffer_hash = hash(tuple(buffer_lines))
         else:
             buffer_hash = cur_undo_sequence
-        dirty_cache = buffer_hash != prev_buffer_hash
-        prev_buffer_hash = buffer_hash
+        dirty_cache = buffer_hash != prev_buffer_hash.get(cur_buffer_num, -1)
+        prev_buffer_hash[cur_buffer_num] = buffer_hash
     else:
         dirty_cache = True
+    #print("prev buffer hash is", prev_buffer_hash[cur_buffer_num], "dirty is", dirty_cache, "calls", foldfun_calls)
 
     #print("updating folds========================================================begin", foldfun_calls)
     if dirty_cache:
-        #print("updating folds........................................................begin")
+        #print("updating folds, dirty........................................................", recalcs)
         # Get a new foldlevel_cache list and recalculate all the foldlevels.
-        foldlevel_cache = [0] * len(buffer_lines)
-        calculate_foldlevels(foldlevel_cache, buffer_lines, shiftwidth)
+        new_cache_list = [0] * len(buffer_lines)
+        foldlevel_cache[cur_buffer_num] = new_cache_list
+        calculate_foldlevels(new_cache_list, buffer_lines, shiftwidth)
         recalcs += 1
         #print("done with folds.......................................................done", recalcs)
 
-    foldlevel = foldlevel_cache[lnum]
+    foldlevel = foldlevel_cache[cur_buffer_num][lnum]
     #foldlevel = min(foldlevel, foldnestmax)
     foldfun_calls += 1
     return foldlevel
