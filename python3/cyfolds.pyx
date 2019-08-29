@@ -104,9 +104,6 @@ Possible enhancements
 
 """
 
-# per-buffer cache
-# no neg on dedent
-
 DEBUG: bint = False
 TESTING: bint = False
 USE_CACHING = True
@@ -124,8 +121,8 @@ if TESTING:
         current = Current
 
 from collections import namedtuple
-from typing import List, Tuple, Set, Dict, Array
-import array # https://cython.readthedocs.io/en/latest/src/tutorial/array.html
+from typing import List, Tuple, Set, Dict
+#import array # https://cython.readthedocs.io/en/latest/src/tutorial/array.html
 import numpy as np
 
 import cython as cy
@@ -138,7 +135,7 @@ foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Cache of all the computed fol
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
 foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel (debugging)
 
-def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:str=None,
+def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
                   foldnestmax:int=20, shiftwidth:int=4, test_buffer=None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
@@ -168,7 +165,8 @@ def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:str=None,
         prev_buffer_hash[cur_buffer_num] = buffer_hash
     else:
         dirty_cache = True
-    #print("prev buffer hash is", prev_buffer_hash[cur_buffer_num], "dirty is", dirty_cache, "calls", foldfun_calls)
+    #print(" prev_buffer_hash=", prev_buffer_hash[cur_buffer_num], " dirty=", dirty_cache, " calls=",
+    #        foldfun_calls, " cur_buffer_num=", cur_buffer_num, type(cur_buffer_num), sep="")
 
     #print("updating folds========================================================begin", foldfun_calls)
     if dirty_cache:
@@ -184,6 +182,15 @@ def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:str=None,
     #foldlevel = min(foldlevel, foldnestmax)
     foldfun_calls += 1
     return foldlevel
+
+def delete_buffer_cache(buffer_num: int):
+    """Remove the saved cache information for the buffer with the given number.  This is meant to be
+    called when the buffer is closed, to avoid wasting memory."""
+    # This function is getting called twice for some reason, so check for the key before del.
+    if buffer_num in prev_buffer_hash:
+        del prev_buffer_hash[buffer_num]
+    if buffer_num in foldlevel_cache:
+        del foldlevel_cache[buffer_num]
 
 cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
                                     in_string: cy.int, indent_spaces: cy.int,

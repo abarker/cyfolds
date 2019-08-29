@@ -24,13 +24,13 @@ endif
 " in some cases, maybe????????????????  Even with caching based on hashing.
 " Define class egg, then it folds, then delete def line with dd... fold
 " remains.
-"let g:hash_for_changes = 1 " TODO TODO, DEBUG bug when multiple buffers in on screen with undotree changes....
+"let g:hash_for_changes = 1 " debugging only
 let g:pyfoldlevel = '' " Global var for return value.
 if !exists("g:hash_for_changes")
    let g:hash_for_changes = 0
 endif
 
-python3 << ---------------------------PythonCode----------------------------------
+python3 << =========================== PythonCode ==================================
 """Python initialization code.  Import the function get_foldlevel."""
 import sys
 from os.path import normpath, join
@@ -41,8 +41,8 @@ vimhome = vim.eval("vimhome")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
 
-from cyfolds import get_foldlevel
----------------------------PythonCode----------------------------------
+from cyfolds import get_foldlevel, delete_buffer_cache
+=========================== PythonCode ==================================
 
 
 " ==============================================================================
@@ -55,7 +55,7 @@ function! GetPythonFoldViaCython(lnum)
    " How to return Python values back to vim: https://stackoverflow.com/questions/17656320/
    "echom "Entering GetPythonFoldViaCython..................................." . a:lnum
 
-python3 << ---------------------------PythonCode----------------------------------
+python3 << =========================== PythonCode ==================================
 """Python code that calls the Cython function get_foldlevel and returns the
 foldlevel in the global variable pyfoldlevel."""
 
@@ -76,13 +76,24 @@ computed_foldlevel = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
 
 # Set the return value as a global vim variable, to pass it back to vim.
 vim.command("let g:pyfoldlevel = {}".format(computed_foldlevel))
----------------------------PythonCode----------------------------------
+=========================== PythonCode ==================================
 
    "echom "Returning foldlevel " . g:pyfoldlevel
    return g:pyfoldlevel
 
 endfunction
 
+
+function! DeleteBufferCache(buffer_num)
+" Free the cache memory when a buffer is deleted.
+python3 << =========================== PythonCode ==================================
+buffer_num = int(vim.eval("a:buffer_num"))
+delete_buffer_cache(buffer_num)
+=========================== PythonCode ==================================
+endfunction
+
+" Call the delete function when the BufDelete event happens.
+autocmd BufDelete *.py call DeleteBufferCache(expand('<abuf>'))
 
 " ==============================================================================
 " ==== Turn off fold updating in insert mode, and update after TextChanged.  ===

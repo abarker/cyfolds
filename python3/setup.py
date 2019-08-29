@@ -30,7 +30,7 @@ GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
 extensions = [Extension("cyfolds", ["cyfolds.pyx"],
                         #extra_compile_args=["-O1"],
                         extra_compile_args=["-O3"],
-                        include_dirs=[],
+                        include_dirs=[], # Maybe include "." if problems...
                         libraries=[],
                         library_dirs=[],
                         )]
