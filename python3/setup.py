@@ -39,6 +39,7 @@ ext_modules = cythonize(extensions,
                         compiler_directives=GLOBAL_CYTHON_DIRECTIVES,
                         verbose=True,
                         force=True,
+                        annotate=True,
                         )
 
 setup(

@@ -23,6 +23,9 @@ while var == value:
     print("While loop.")
     print("Two lines.")
 
+    def inside_while_def():
+        pass
+
 def main_crop(
         ):
     """Process command-line arguments, do the PDF processing, and then perform
@@ -49,9 +52,9 @@ def main_crop(
 def x():
     def y():
         def z():
-            "This one doesn't fold right, but apparently a vim bug because the
-            raw foldlevel numbers look correct.  Also fails with docstring after
-            y and some code after y and before z"
+            """Triple nest
+
+            """
             x = 4
             y = 5
 
@@ -74,9 +77,17 @@ with open("egg") as f:
 
 x = \
         5
+
+# TODO: this case is still failing.  But it is a syntax error.
 def \
         continued(): \
         \
-    """Docstring \"   """
+    """Fake docstring \"   """
+    x += 4
+
+def \
+        continued(): \
+
+    """Real docstring \"   """
     x += 4
 

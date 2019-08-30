@@ -92,9 +92,6 @@ Possible enhancements
   folds over the whole file (which is pretty fast)?  You need to at least
   search or hash over the whole file to tell what changed.
 
-* Define an autocmd on the event of a buffer closing that deletes its foldlevel
-  cache.  Currently they are never deleted, wasting some memory.
-
 * Maybe have an option to number indents by number of spaces.  Might be more
   line what some people expect, such as when a function definition is nested
   inside a for loop.
@@ -218,47 +215,38 @@ cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],
         foldlevel_cache[lnum_loopback] = foldlevel_value
         lnum_loopback -= 1
 
-cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], indent_spaces_stack: List[cy.int],
-                               new_foldlevel_queue: List[cy.int],
-                               new_indent_spaces_queue: List[cy.int]):
+cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], fold_indent_spaces_stack:
+                     List[cy.int], new_foldlevel: cy.int, new_fold_indent_spaces: cy.int):
     """The fun/class defs define the new fold levels, but they're deferred for possible
     docstrings.  Also, levels are saved so things which
     dedent can return to that level (like after nested fun defs)."""
-    new_indent_spaces = new_indent_spaces_queue.pop()
-    new_foldlevel = new_foldlevel_queue.pop()
-    if DEBUG:
-        print("   --> increasing foldlevel to {}".format(new_foldlevel))
-    if new_foldlevel != foldlevel_stack[-1] + 1:
-        print("ASSERTION FAILED: pushing new foldlevel {} on stack with {} on top."
-              .format(new_foldlevel, foldlevel_stack[-1]))
-    if len(new_foldlevel_queue) > 2:
-        print("ASSERTION FAILED: extra elements on new_foldlevel_queue:",
-              new_foldlevel_queue)
+    if DEBUG: print("   --> increasing foldlevel to {}".format(new_foldlevel))
+
     if new_foldlevel > foldlevel_stack[-1]:
         foldlevel_stack.append(new_foldlevel)
-        indent_spaces_stack.append(new_indent_spaces)
+        fold_indent_spaces_stack.append(new_fold_indent_spaces)
     return new_foldlevel
 
+cdef cy.int get_foldlevel_increment(curr_foldlevel: cy.int, indent_spaces: cy.int,
+                                    shiftwidth: cy.int):
+    """Return the increment in the shiftlevel.  Currently just returns 1 or maybe the
+    shiftwidth, but later may take more parameters such as the recognized keyword."""
+    increment: cy.int
+    # Constant increment works, and always gives sequential increases regardless of indent.
+    #increment = 1
+
+    # With this method the foldlevel always equals the indent spaces divided by shiftwidth,
+    # i.e., the number of indent levels.  But, it gives weird behavior on vim.  The
+    # number of za commands to open a fold seems to be increased when the level jumps...
+    # Same thing for zo.  May kill the idea of default open/closed by incrementing.
+    # But using 100zo gives the behavior I expect on open and is still fast.
+    increment = indent_spaces // shiftwidth - curr_foldlevel + 1
+    assert increment >= 0
+    return increment
 
 cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List[str],
                                shiftwidth: cy.int):
     """Do the actual calculations and return the foldlevel."""
-
-    in_single_quote_string: bint = False
-    in_double_quote_string: bint = False
-    in_single_quote_docstring: bint = False
-    in_double_quote_docstring: bint = False
-
-    def is_in_string():
-        return (in_single_quote_string or in_single_quote_docstring or
-                in_double_quote_string or in_double_quote_docstring)
-
-    nest_parens: cy.int = 0
-    nest_brackets: cy.int = 0
-    nest_braces: cy.int = 0
-
-    def is_nested():
-        return nest_parens or nest_brackets or nest_braces
 
     # States in the state machine.
     inside_fun_or_class_def: bint = False
@@ -268,13 +256,15 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
 
     # Stacks holding the current foldlevels and their indents, highest on top.
     foldlevel_stack: List[cy.int] = [0]
-    indent_spaces_stack: List[cy.int] = [0]
+    fold_indent_spaces_stack: List[cy.int] = [0]
 
-    # Queues holding new foldlevels and their indents before they're applied.
-    new_foldlevel_queue: List[cy.int] = []
-    new_indent_spaces_queue: List[cy.int] = []
+    # New foldlevels and copies saved to avoid overwrites.
+    new_foldlevel: cy.int = 0
+    new_foldlevel_copy: cy.int = 0
+    new_fold_indent_spaces: cy.int = 0
+    new_fold_indent_spaces_copy: cy.int = 0
 
-    # Properties of lines and holding across lines.
+    # Properties of lines and which hold across lines.
     foldlevel: cy.int = 0
     prev_foldlevel: cy.int = 0
     in_string: bint = False
@@ -282,20 +272,41 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     nested: bint = False
     prev_nested: bint = False
     line_has_a_contination: bint = False
-    line_is_a_continuation: bint = False
+    prev_line_has_a_continuation: bint = False
     indent_spaces: cy.int = 0
     prev_indent_spaces: cy.int = 0
     escape_char: bint = False
 
+    # String-related variables.
+    in_single_quote_string: bint = False
+    in_double_quote_string: bint = False
+    in_single_quote_docstring: bint = False
+    in_double_quote_docstring: bint = False
+
+    def is_in_string():
+        return (in_single_quote_string or in_single_quote_docstring or
+                in_double_quote_string or in_double_quote_docstring)
+
+    # Nesting in different bracket types.
+    nest_parens: cy.int = 0
+    nest_brackets: cy.int = 0
+    nest_braces: cy.int = 0
+
+    def is_nested():
+        return nest_parens or nest_brackets or nest_braces
+
     # Loop over the lines.
-    for line_num, line in enumerate(buffer_lines):
+    line_num: cy.int = -1
+    buffer_len: cy.int = len(buffer_lines)
+    for line_num in range(buffer_len):
+        line = buffer_lines[line_num]
         ends_in_triple_quote: bint
         begins_with_triple_quote: bint
         indent_spaces: cy.int
         line_is_only_comment: bint
         is_empty: bint
 
-        if line_is_a_continuation:
+        if prev_line_has_a_continuation:
             indent_spaces = prev_indent_spaces
             line_is_only_comment = False
         else:
@@ -408,14 +419,15 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     "\n   nested=", nested, "  in_string=", in_string, sep="")
         if dedent:
             # Revert to previous foldlevel, according to how far the dedent went.
-            if indent_spaces < indent_spaces_stack[-1]:
-                while len(indent_spaces_stack) >= 1 and indent_spaces < indent_spaces_stack[-1]:
+            if indent_spaces < fold_indent_spaces_stack[-1]:
+                while (len(fold_indent_spaces_stack) >= 1
+                        and indent_spaces < fold_indent_spaces_stack[-1]):
                     #print("POPPING stacks, indent and foldlevel are:",
-                    #      indent_spaces_stack, foldlevel_stack)
-                    ind = indent_spaces_stack.pop()
+                    #      fold_indent_spaces_stack, foldlevel_stack)
+                    ind = fold_indent_spaces_stack.pop()
                     fld = foldlevel_stack.pop()
                     #print("POPPED foldlevel_stack", ind, fld)
-                prev_indent_spaces = indent_spaces_stack[-1]
+                prev_indent_spaces = fold_indent_spaces_stack[-1]
                 prev_foldlevel = foldlevel_stack[-1]
                 #print("set prev_foldlevel to", prev_foldlevel)
                 if DEBUG:
@@ -428,7 +440,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         if is_empty:
             foldlevel = -5 # The -5 value is later be replaced by the succeeding foldlevel.
 
-        elif line_is_a_continuation:
+        elif prev_line_has_a_continuation:
             foldlevel = prev_foldlevel # Don't separate a line from its continuation.
 
         else:
@@ -442,16 +454,18 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                 print("   just_after_fun_or_class_def:", just_after_fun_or_class_def)
                 print("   inside_docstring:", inside_docstring)
                 print("   just_after_fun_docstring:", just_after_fun_docstring)
-                print("   foldlevel_stack and indent_spaces_stack:", foldlevel_stack,
-                                                                  indent_spaces_stack)
+                print("   foldlevel_stack and fold_indent_spaces_stack:", foldlevel_stack,
+                                                                  fold_indent_spaces_stack)
 
             foldlevel = prev_foldlevel # The fallback value.
 
             if just_after_fun_docstring:
                 # Can occur at the same time as begin_fun_or_class_def: fundef after docstring.
                 just_after_fun_docstring = False
-                foldlevel = increase_foldlevel(foldlevel_stack, indent_spaces_stack,
-                                               new_foldlevel_queue, new_indent_spaces_queue)
+                foldlevel = increase_foldlevel(foldlevel_stack,
+                                               fold_indent_spaces_stack,
+                                               new_foldlevel_copy,
+                                               new_fold_indent_spaces_copy)
 
             if inside_docstring:
                 if not in_string: # Docstring closed at end of line, repeat until.
@@ -460,6 +474,12 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
 
             if just_after_fun_or_class_def:
                 just_after_fun_or_class_def = False
+
+                # Copy the variables new_indent spaces and new_foldlevel so that if a new
+                # begin_fun_or_class_def is processed it does not overwrite them.
+                new_fold_indent_spaces_copy = new_fold_indent_spaces
+                new_foldlevel_copy = new_foldlevel
+
                 if begins_with_triple_quote:
                     if in_string:
                         inside_docstring = True
@@ -468,12 +488,16 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                         just_after_fun_docstring = True
                     else:
                         # Syntax error or single-quote docstring.
-                        foldlevel = increase_foldlevel(foldlevel_stack, indent_spaces_stack,
-                                                       new_foldlevel_queue, new_indent_spaces_queue)
+                        foldlevel = increase_foldlevel(foldlevel_stack,
+                                                       fold_indent_spaces_stack,
+                                                       new_foldlevel_copy,
+                                                       new_fold_indent_spaces_copy)
                 else:
                     # Function with no docstring.
-                    foldlevel = increase_foldlevel(foldlevel_stack, indent_spaces_stack,
-                                                   new_foldlevel_queue, new_indent_spaces_queue)
+                    foldlevel = increase_foldlevel(foldlevel_stack,
+                                                   fold_indent_spaces_stack,
+                                                   new_foldlevel_copy,
+                                                   new_fold_indent_spaces_copy)
 
             if inside_fun_or_class_def:
                 if not nested: # or in_string:
@@ -481,20 +505,23 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     just_after_fun_or_class_def = True
 
             if begin_fun_or_class_def:
-                # Note this can be True at same time as either
-                # just_after_fun_or_class_def or just_after_fun_docstring (i.e., fundef
-                # right after fundef).  Hence the queue of new foldlevel values and indent
-                # lines values to set.  The queue which will hold at most two elements.
+                # Note this can be True at same time as either just_after_fun_or_class_def
+                # or just_after_fun_docstring (i.e., fundef right after fundef).  Hence the
+                # copies of new_foldlevel and new_fold_indent_spaces lines values to set in the
+                # just_after_fun_or_class_def state.
 
                 if nested or in_string:
                     inside_fun_or_class_def = True
                 else:
                     just_after_fun_or_class_def = True
 
-                # New foldlevels, but deferred until after possibly processing off a
-                # docstring following the function def.
-                new_indent_spaces_queue.insert(0, indent_spaces + shiftwidth)
-                new_foldlevel_queue.insert(0, foldlevel_stack[-1] + 1)
+                # New foldlevels, but application deferred until after possibly
+                # processing-off a # docstring following the function def.
+                curr_foldlevel: cy.int = foldlevel_stack[-1]
+                new_fold_indent_spaces = indent_spaces + shiftwidth
+                foldlevel_increment: cy.int = get_foldlevel_increment(curr_foldlevel,
+                                                           indent_spaces, shiftwidth)
+                new_foldlevel = curr_foldlevel + foldlevel_increment
 
         # Save the calculated foldlevel value in the cache.
         foldlevel_cache[line_num] = foldlevel
@@ -509,7 +536,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         prev_in_string = in_string
         prev_indent_spaces = (indent_spaces if not is_empty and not line_is_only_comment
                               else prev_indent_spaces)
-        line_is_a_continuation = line_has_a_contination
+        prev_line_has_a_continuation = line_has_a_contination
 
     # Handle the case where foldlevel of last line was set to -5; replace sequence with 0.
     if foldlevel_cache[line_num] == -5:
