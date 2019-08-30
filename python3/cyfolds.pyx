@@ -198,6 +198,7 @@ cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
         if line[indent_spaces:indent_spaces+4] == "def ": return True
         # TODO: remember cython enabled here...
         if line[indent_spaces:indent_spaces+5] == "cdef ": return True
+        if line[indent_spaces:indent_spaces+5] == "cpdef ": return True
         if line[indent_spaces:indent_spaces+6] == "class ": return True
         if line[indent_spaces:indent_spaces+10] == "async def ": return True
         if also_for and line[indent_spaces:indent_spaces+4] == "for ": return True
@@ -300,17 +301,21 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     buffer_len: cy.int = len(buffer_lines)
     for line_num in range(buffer_len):
         line = buffer_lines[line_num]
-        ends_in_triple_quote: bint
+
+        ends_with_triple_quote: bint
+        ends_with_colon: bint
         begins_with_triple_quote: bint
         indent_spaces: cy.int
+        last_non_whitespace_index: cy.int
         line_is_only_comment: bint
         is_empty: bint
 
         if prev_line_has_a_continuation:
-            indent_spaces = prev_indent_spaces
+            indent_spaces = 0
             line_is_only_comment = False
         else:
-            ends_in_triple_quote = False
+            ends_with_triple_quote = False
+            ends_with_colon = False
             begins_with_triple_quote = False
             indent_spaces = 0
             line_is_only_comment = False
@@ -330,53 +335,70 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         else: # nobreak
             is_empty = True
 
+        # Find the index of the last non-whitespace char (but might be in comment).
+        last_non_whitespace_index = -1 # Means empty, be careful if indexing.
+        if not is_empty:
+            for i in range(line_len-1, -1, -1): # Search backward in line.
+                char = line[i]
+                if char != " " and char != "\t":
+                    last_non_whitespace_index = i
+                    break
+
         # Loop over the rest of the chars in the line.
         i = indent_spaces - 1
         while not is_empty and not line_is_only_comment: # Loop, but ignore empty lines.
             i += 1
-            if i >= line_len:
+            if i > last_non_whitespace_index:
                 break
             char = line[i]
 
             in_string = is_in_string()
             nested = is_nested()
 
-            # Turn off `ends_in_triple_quote` if some non-whitespace char is found.
-            if char != " " and char != "\t":
-                if char != "#": # Conditional handles the weird case of `""" # comment`
-                    ends_in_triple_quote = False # Turn off; found non-whitespace non-comment.
-
-            # Comments on lines, after code.
-            if not in_string and char == "#":
-                # Note this break keeps the current ends_in_triple_quote setting as final.
-                break # We're finished processing the line.
-
-            # Escape char.
-            if in_string and char == "\\" and not escape_char:
-                escape_char = True
-                continue # Note, we stop processing here and pick up on next loop through.
+            # String escape char.
+            if char == "\\" and not escape_char:
+                if in_string:
+                    escape_char = True
+                    continue # Note, we stop processing here and pick up on next loop through.
+                break # Line continuation, pick up on next line like on this one.
             char_is_escaped = escape_char
             escape_char = False
 
+            # Turn off `ends_with_triple_quote` and `ends_with_colon` if non-whitespace char.
+            if char != " " and char != "\t" and char != "#":
+                # Char is # handles the weird case of `""" # comment`
+                ends_with_triple_quote = False
+                ends_with_colon = False
+
+            if char == ":" and not in_string and not nested:
+                ends_with_colon = True # Will toggle back off of something else found.
+
+            # Comments on lines, after code.
+            elif not in_string and char == "#":
+                # Note this break keeps the current ends_with_triple_quote setting as final.
+                break # We're finished processing the line.
+
             # Strings.
-            if char == '"' and not char_is_escaped:
+            elif char == '"' and not char_is_escaped:
                 if i + 2 < line_len and line[i+1] == '"' and line[i+2] == '"':
                     if in_double_quote_docstring or not in_string:
                         if in_string:
-                            ends_in_triple_quote = True # Provisional; may turn back off.
-                        elif not in_string and i == indent_spaces:
+                            ends_with_triple_quote = True # Provisional; may turn back off.
+                        elif (not in_string and i == indent_spaces
+                                            and not prev_line_has_a_continuation):
                             begins_with_triple_quote = True
                         in_double_quote_docstring = not in_double_quote_docstring
                     i += 2
                 elif in_double_quote_string or not in_string:
                     in_double_quote_string = not in_double_quote_string
                 continue
-            if char == "'" and not char_is_escaped:
+            elif char == "'" and not char_is_escaped:
                 if i + 2 < line_len and line[i+1] == "'" and line[i+2] == "'":
                     if in_single_quote_docstring or not in_string:
                         if in_string:
-                            ends_in_triple_quote = True # Provisional; may turn back off.
-                        elif not in_string and i == indent_spaces:
+                            ends_with_triple_quote = True # Provisional; may turn back off.
+                        elif (not in_string and i == indent_spaces
+                                            and not prev_line_has_a_continuation):
                             begins_with_triple_quote = True
                         in_single_quote_docstring = not in_single_quote_docstring
                     i += 2
@@ -394,6 +416,8 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             if char == "(": nest_braces += 1; continue
             elif char == ")": nest_braces -= 1; continue
 
+            if prev_line_has_a_continuation:
+                indent_spaces = prev_indent_spaces
         #
         # Back in loop over lines; calculate foldlevel for the line based on computed info.
         #
@@ -437,15 +461,13 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         # Begin setting the foldlevels for various cases.
         #
 
+        foldlevel = prev_foldlevel # The fallback value.
+
         if is_empty:
             foldlevel = -5 # The -5 value is later be replaced by the succeeding foldlevel.
 
-        elif prev_line_has_a_continuation:
-            foldlevel = prev_foldlevel # Don't separate a line from its continuation.
-
-        else:
-            # This part is kind of a finite-state machine handling docstrings after fundef.
-            # Otherwise we just set foldlevel to the previous foldlevel.
+        if not is_empty or prev_line_has_a_continuation:
+            # This part is the finite-state machine handling docstrings after fundef.
             begin_fun_or_class_def = is_begin_fun_or_class_def(line, prev_nested,
                                                                in_string, indent_spaces)
             if DEBUG:
@@ -457,15 +479,14 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                 print("   foldlevel_stack and fold_indent_spaces_stack:", foldlevel_stack,
                                                                   fold_indent_spaces_stack)
 
-            foldlevel = prev_foldlevel # The fallback value.
-
             if just_after_fun_docstring:
                 # Can occur at the same time as begin_fun_or_class_def: fundef after docstring.
                 just_after_fun_docstring = False
-                foldlevel = increase_foldlevel(foldlevel_stack,
-                                               fold_indent_spaces_stack,
-                                               new_foldlevel_copy,
-                                               new_fold_indent_spaces_copy)
+                if not dedent: # Catch the case of fun with only docstring, no code.
+                    foldlevel = increase_foldlevel(foldlevel_stack,
+                                                   fold_indent_spaces_stack,
+                                                   new_foldlevel_copy,
+                                                   new_fold_indent_spaces_copy)
 
             if inside_docstring:
                 if not in_string: # Docstring closed at end of line, repeat until.
@@ -483,7 +504,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                 if begins_with_triple_quote:
                     if in_string:
                         inside_docstring = True
-                    elif ends_in_triple_quote:
+                    elif ends_with_triple_quote:
                         # Trigger just_after_fun_docstring, but on next line.
                         just_after_fun_docstring = True
                     else:
@@ -500,9 +521,9 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                                                    new_fold_indent_spaces_copy)
 
             if inside_fun_or_class_def:
-                if not nested: # or in_string:
+                if not nested and not line_has_a_contination:
                     inside_fun_or_class_def = False
-                    just_after_fun_or_class_def = True
+                    just_after_fun_or_class_def = ends_with_colon
 
             if begin_fun_or_class_def:
                 # Note this can be True at same time as either just_after_fun_or_class_def
@@ -510,7 +531,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                 # copies of new_foldlevel and new_fold_indent_spaces lines values to set in the
                 # just_after_fun_or_class_def state.
 
-                if nested or in_string:
+                if nested or in_string or line_has_a_contination:
                     inside_fun_or_class_def = True
                 else:
                     just_after_fun_or_class_def = True

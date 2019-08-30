@@ -35,7 +35,7 @@ def main_crop(
 
     def egg():
         parsed_args
-        pass # single line doesn't fold...
+        pass
 
     def egg_single_line():
         pass
@@ -62,6 +62,8 @@ def a():
     pass
 def b():
     pass
+def c():
+    """pass"""
 
 with open("egg") as f:
     def fun_in_with():
@@ -78,7 +80,7 @@ with open("egg") as f:
 x = \
         5
 
-# TODO: this case is still failing.  But it is a syntax error.
+# This one fails because colon at end of line is checked and missing.
 def \
         continued(): \
         \
