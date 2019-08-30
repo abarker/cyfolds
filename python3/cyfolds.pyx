@@ -122,7 +122,6 @@ if TESTING:
 
 from collections import namedtuple
 from typing import List, Tuple, Set, Dict
-#import array # https://cython.readthedocs.io/en/latest/src/tutorial/array.html
 import numpy as np
 
 import cython as cy
@@ -141,7 +140,7 @@ def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
     zero.  The `test_buffer` if for passing in a mock of the `vim.current.buffer`
     object in debugging and testing."""
-    global foldlevel_cache, prev_buffer_hash, recalcs, foldfun_calls # TODO global not needed for dict
+    global recalcs, foldfun_calls # Debugging counts, persistent.
 
     foldnestmax = int(foldnestmax)
     shiftwidth = int(shiftwidth)
@@ -261,67 +260,80 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     def is_nested():
         return nest_parens or nest_brackets or nest_braces
 
+    # States in the state machine.
     inside_fun_or_class_def: bint = False
     just_after_fun_or_class_def: bint = False
     inside_docstring: bint = False
     just_after_fun_docstring: bint = False
 
-    foldlevel: cy.int = 0
-    prev_foldlevel: cy.int = 0
-    nested: bint = False
-    prev_nested: bint = False
-    indent_spaces: cy.int = 0
-    prev_indent_spaces: cy.int = 0
-    in_string: bint = False
-    escape_char: bint = False
-    prev_in_string: bint = False
-    line_has_a_contination: bint = False
-    line_is_a_continuation: bint = False
+    # Stacks holding the current foldlevels and their indents, highest on top.
+    foldlevel_stack: List[cy.int] = [0]
+    indent_spaces_stack: List[cy.int] = [0]
 
-    foldlevel_stack: List[cy.int] = [0] # Stack of foldlevels with each increase.
-    indent_spaces_stack: List[cy.int] = [0] # Corresponding stack of indent levels.
-
+    # Queues holding new foldlevels and their indents before they're applied.
     new_foldlevel_queue: List[cy.int] = []
     new_indent_spaces_queue: List[cy.int] = []
 
+    # Properties of lines and holding across lines.
+    foldlevel: cy.int = 0
+    prev_foldlevel: cy.int = 0
+    in_string: bint = False
+    prev_in_string: bint = False
+    nested: bint = False
+    prev_nested: bint = False
+    line_has_a_contination: bint = False
+    line_is_a_continuation: bint = False
+    indent_spaces: cy.int = 0
+    prev_indent_spaces: cy.int = 0
+    escape_char: bint = False
+
+    # Loop over the lines.
     for line_num, line in enumerate(buffer_lines):
-        ends_in_triple_quote: bint = False
-        begins_with_triple_quote: bint = False
-        indent_spaces: cy.int = 0
-        found_indent_spaces: bint = False
-        line_is_only_comment: bint = False
-        is_empty: bint = False
+        ends_in_triple_quote: bint
+        begins_with_triple_quote: bint
+        indent_spaces: cy.int
+        line_is_only_comment: bint
+        is_empty: bint
+
+        if line_is_a_continuation:
+            indent_spaces = prev_indent_spaces
+            line_is_only_comment = False
+        else:
+            ends_in_triple_quote = False
+            begins_with_triple_quote = False
+            indent_spaces = 0
+            line_is_only_comment = False
+            is_empty = False
 
         line_len: cy.int = len(line)
-        if line == "": # Was rstripped.
-            assert line_len == 0
-            indent_spaces: cy.int = 0
-            is_empty = True
-            line_is_only_comment = False
 
-        # Loop over the chars in the line.
+        # Find the indent level and identify empty strings.
         i: cy.int = -1
-        while not is_empty: # Loop, but ignore empty lines.
+        for i in range(line_len):
+            char = line[i]
+            if char != " " and char != "\t":
+                indent_spaces = i
+                if not in_string and char == "#":
+                    line_is_only_comment = True
+                break
+        else: # nobreak
+            is_empty = True
+
+        # Loop over the rest of the chars in the line.
+        i = indent_spaces - 1
+        while not is_empty and not line_is_only_comment: # Loop, but ignore empty lines.
             i += 1
             if i >= line_len:
                 break
+            char = line[i]
 
             in_string = is_in_string()
             nested = is_nested()
 
-            char = line[i]
-
-            # Set the indent level as the first non-whitespace char index.
+            # Turn off `ends_in_triple_quote` if some non-whitespace char is found.
             if char != " " and char != "\t":
-                if char != "#": # Below will handle the weird case of `""" # comment`
+                if char != "#": # Conditional handles the weird case of `""" # comment`
                     ends_in_triple_quote = False # Turn off; found non-whitespace non-comment.
-                # Below conditional only runs up to first non-whitespace, to find indent.
-                if not found_indent_spaces:
-                    indent_spaces = i
-                    found_indent_spaces = True
-                    if not in_string and char == "#": # First char is comment char.
-                        line_is_only_comment = True
-                        break # Comments make no difference, done processing.
 
             # Comments on lines, after code.
             if not in_string and char == "#":
@@ -361,7 +373,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     in_single_quote_string = not in_single_quote_string
                 continue
 
-            if in_string: # No characters in strings matter but quotes and escapes.
+            if in_string: # No characters in strings matter except end quotes and escapes.
                 continue
 
             if char == "(": nest_parens += 1; continue

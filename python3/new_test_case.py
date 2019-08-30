@@ -72,3 +72,11 @@ with open("egg") as f:
         z = 6
         w = 8
 
+x = \
+        5
+def \
+        continued(): \
+        \
+    """Docstring \"   """
+    x += 4
+
