@@ -93,6 +93,8 @@ Possible enhancements
   search or hash over the whole file to tell what changed.  Updating is a pain
   with blocks.
 
+* vimscript function to dynamically set the keywords folded on.  Easy to add.
+
 * Maybe have an option to number indents by number of spaces.  Might be more
   line what some people expect, such as when a function definition is nested
   inside a for loop.
@@ -221,15 +223,24 @@ def delete_buffer_cache(buffer_num: int):
     if buffer_num in foldlevel_cache:
         del foldlevel_cache[buffer_num]
 
-def setup_regex_pattern(pat_string):
+keyword_pattern_dict: Dict = {"else": "else:",
+                              "try": "try:",
+                              "finally": "finally:",
+                              "except": "except |except:",
+                             }
+
+def setup_regex_pattern(fold_keywords_string):
     """Set up the regex to match the keywords in the list `pat_list`.  The
     `pat_string` should be a comma-separated list of keywords."""
-    global fold_keywords_matcher, max_pat_len
-    # Note single space added after each keyword.
-    pattern_string = " |".join(pat_string.split(",")) + " "
+    global fold_keywords_matcher
+
+    keywords_list: List = fold_keywords_string.split(",")
+    keywords_list = [keyword_pattern_dict.get(k, k + " ") for k in keywords_list]
+    pattern_string = "|".join(keywords_list)
+
     fold_keywords_matcher = re.compile(r"[ \t]*(?P<keyword>{})".format(pattern_string))
 
-setup_regex_pattern(default_fold_keywords)
+#setup_regex_pattern(default_fold_keywords) # Now setup call from python.vim inits them.
 
 cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
                                     in_string: cy.int, indent_spaces: cy.int,

@@ -25,18 +25,12 @@ else
     let vimhome = $HOME."/.vim"
 endif
 
-" When multiple open view windows are used and you first open
-" pratt_constructs.py and then pratt_parser.py in another, it uses the
-" folds for pratt_constructs.py for pratt_parser.py, AND it is very slow
-" and seems to recompute each time, caching fail.  But only intermittently.
-" It seems like the buffer passed in may not yet be set to the new buffer
-" in some cases, maybe????????????????  Even with caching based on hashing.
-" Define class egg, then it folds, then delete def line with dd... fold
-" remains.
-"let g:hash_for_changes = 1 " debugging only
-"let g:pyfoldlevel = '' " Global var for return value of Python function.
 if !exists("g:hash_for_changes")
     let g:hash_for_changes = 0
+endif
+
+if !exists("g:cyfolds_fold_keywords")
+    let g:cyfolds_fold_keywords = "class,def,async def"
 endif
 
 python3 << ----------------------- PythonCode ----------------------------------
@@ -47,11 +41,23 @@ import vim
 
 # Put vim python3 directory on sys.path so the plugin can be imported.
 vimhome = vim.eval("vimhome")
+cyfolds_fold_keywords = vim.eval("cyfolds_fold_keywords")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
 
-from cyfolds import get_foldlevel, delete_buffer_cache
+from cyfolds import get_foldlevel, delete_buffer_cache, setup_regex_pattern
+setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
+
+function! CyfoldsSetFoldKeywords(keyword_str)
+   " Dynamically assign the folding keywords to those on the string `keyword_str`.
+   let g:cyfolds_fold_keywords = a:keyword_str
+python3 << ----------------------- PythonCode ----------------------------------
+cyfolds_fold_keywords = vim.eval("a:keyword_str")
+setup_regex_pattern(cyfolds_fold_keywords)
+----------------------- PythonCode ----------------------------------
+   call CyfoldsForceFoldUpdate()
+endfunction
 
 
 " ==============================================================================

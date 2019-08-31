@@ -54,6 +54,24 @@ back.  The existing folds and their states are left unchanged.
 Settings
 ~~~~~~~~
 
+You can define which particular keywords are folded after by setting this
+configuration variable::
+
+   let g:cyfolds_fold_keywords = "class,def,async def"
+
+The default values are shown.  For Cython you can set it to::
+
+   let g:cyfolds_fold_keywords = "class,def,async def,cclass,cdef,cpdef"
+
+Any keyword which starts a line and where the statement ends in a colon
+can be used.  The list of all of them in Python is::
+
+   "class,def,async def,while,for,if,else,elif,with,try,except,finally"
+
+If a docstring appears immediately after any such definition it will remain
+unfolded along with the main statement.  This list can be reset dynamically
+by passing the new list to the function ``CyfoldsSetFoldKeywords``.
+
 To disable loading of the Cyfolds plugin use this in your ``.vimrc``::
 
    let g:cyfolds = 0
