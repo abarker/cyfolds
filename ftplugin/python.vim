@@ -117,24 +117,30 @@ let b:suppress_insert_mode_switching = 0
 "    autocmd InsertEnter *.py setlocal foldmethod=manual
 "    autocmd InsertLeave *.py setlocal foldmethod=expr
 "augroup END
-"
-"augroup unset_cython_folding_in_insert_mode
+
+"augroup unset_python_folding_in_insert_mode
 "    autocmd!
-"    autocmd InsertEnter *.pyx setlocal foldmethod=manual
-"    autocmd InsertLeave *.pyx setlocal foldmethod=expr
+"    "autocmd InsertEnter *.py setlocal foldmethod=marker " Bad: opens all folds.
+"    autocmd InsertEnter *.py if b:suppress_insert_mode_switching == 0 | setlocal foldmethod=manual | endif
+"    autocmd InsertLeave *.py if b:suppress_insert_mode_switching == 0 | setlocal foldmethod=expr | endif
 "augroup END
 
 augroup unset_python_folding_in_insert_mode
     autocmd!
     "autocmd InsertEnter *.py setlocal foldmethod=marker " Bad: opens all folds.
-    autocmd InsertEnter *.py if b:suppress_insert_mode_switching == 0 | setlocal foldmethod=manual | endif
-    autocmd InsertLeave *.py if b:suppress_insert_mode_switching == 0 | setlocal foldmethod=expr | endif
+    autocmd InsertEnter *.py if b:suppress_insert_mode_switching == 0 | 
+                \ let b:oldfoldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
+    autocmd InsertLeave *.py if b:suppress_insert_mode_switching == 0 |
+                \ let &l:foldmethod = b:oldfoldmethod  | endif
 augroup END
 
 augroup unset_cython_folding_in_insert_mode
     autocmd!
-    autocmd InsertEnter *.pyx if b:suppress_insert_mode_switching == 0 | setlocal foldmethod=manual | endif
-    autocmd InsertLeave *.pyx if b:suppress_insert_mode_switching == 0 | setlocal foldmethod=expr | endif
+    "autocmd InsertEnter *.py setlocal foldmethod=marker " Bad: opens all folds.
+    autocmd InsertEnter *.pyx if b:suppress_insert_mode_switching == 0 | 
+                \ let b:oldfoldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
+    autocmd InsertLeave *.pyx if b:suppress_insert_mode_switching == 0 |
+                \ let &l:foldmethod = b:oldfoldmethod  | endif
 augroup END
 
 "" Here is a more general form, which preserves the chosen foldmethod.
@@ -197,12 +203,9 @@ function CyfoldsToggleManualFolds()
    " Toggle folding method between current one and manual.  Useful when
    " editing a lot and the slight delay on leaving insert mode becomes annoying.
    if &l:foldmethod != 'manual'
-      let b:oldfoldmethod = &l:foldmethod
       setlocal foldmethod=manual
-      let b:suppress_insert_mode_switching = 1
    else
-      let &l:foldmethod = b:oldfoldmethod
-      let b:suppress_insert_mode_switching = 0
+      setlocal foldmethod=expr
       call CyfoldsForceFoldUpdate()
    endif
    echom "foldmethod=" . &l:foldmethod

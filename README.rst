@@ -45,18 +45,22 @@ but only in Python).  Folds can get messed up, for example, when deleting
 characters with ``x`` or lines with ``dd``.  This happens because those change
 events do not trigger vim to update the folds.
 
-Use ``z,`` to pause the regular mode and go to manual mode.  This also disables
-the fold updating on leaving insert mode (the small delay there can be annoying
-during heavy editing).  To toggle it back on hit ``z,`` again.  Folds are
-updated automatically upon toggling back.  The existing folds and their states
-are left unchanged.
+Use ``z,`` to pause the regular (expr) mode and go to manual mode.  When in
+manual mode there is no fold updating, including on leaving insert mode (the
+small delay there can be annoying during heavy editing).  To toggle regular
+mode back on hit ``z,`` again.  Folds are updated automatically upon toggling
+back.  The existing folds and their states are left unchanged.
 
 Settings
 ~~~~~~~~
 
-To disable loading of the Cyfolds plugin use this in your `.vimrc`::
+To disable loading of the Cyfolds plugin use this in your ``.vimrc``::
 
    let g:cyfolds = 0
+
+To suppress switching fold updates off in insert mode (not recommended)::
+
+   let g:suppress_insert_mode_switching = 1
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode vim updates the folds on every character,
