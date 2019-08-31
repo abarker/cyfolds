@@ -32,7 +32,31 @@ Go to the cloned repo and into the ``python3`` directory.   Run the Bash script
 Configuration
 -------------
 
-Turn on folding in vim.
+Turn on folding in vim and plugins in general if you haven't already::
+
+  set foldenable
+  filetype plugin on
+
+New commands
+~~~~~~~~~~~~
+
+Use ``zuz`` to force the folds to be updated (same as the FastFolds mapping,
+but only in Python).  Folds can get messed up, for example, when deleting
+characters with ``x`` or lines with ``dd``.  This happens because those change
+events do not trigger vim to update the folds.
+
+Use ``z,`` to pause the regular mode and go to manual mode.  This also disables
+the fold updating on leaving insert mode (the small delay there can be annoying
+during heavy editing).  To toggle it back on hit ``z,`` again.  Folds are
+updated automatically upon toggling back.  The existing folds and their states
+are left unchanged.
+
+Settings
+~~~~~~~~
+
+To disable loading of the Cyfolds plugin use this in your `.vimrc`::
+
+   let g:cyfolds = 0
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode vim updates the folds on every character,
@@ -41,6 +65,11 @@ changes since the updates need to be made after leaving insert mode.  There is
 an option to switch to using a Python hash to detect changes, by setting::
 
    g:hash_for_changes=1
+
+Suggested settings
+~~~~~~~~~~~~~~~~~~
+
+<copy from .vimrc when good, and colors from color file>
 
 Interaction with other plugins
 ------------------------------

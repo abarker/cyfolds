@@ -90,7 +90,8 @@ Possible enhancements
   the whole thing.  Or maybe hash blocks of, say, 10 lines and take line
   numbers mod that number.  But is this maybe slower than just computing the
   folds over the whole file (which is pretty fast)?  You need to at least
-  search or hash over the whole file to tell what changed.
+  search or hash over the whole file to tell what changed.  Updating is a pain
+  with blocks.
 
 * Maybe have an option to number indents by number of spaces.  Might be more
   line what some people expect, such as when a function definition is nested
@@ -103,7 +104,8 @@ Possible enhancements
 
 DEBUG: bint = False
 TESTING: bint = False
-USE_CACHING = True
+USE_CACHING: bint = True
+EXPERIMENTAL: bint = False
 
 try:
     import vim
@@ -117,62 +119,92 @@ if TESTING:
     class vim:
         current = Current
 
+import sys
 from collections import namedtuple
 from typing import List, Tuple, Set, Dict
-import numpy as np
+import re
 
 import cython as cy
 from cpython cimport bool # Use Python bool.
 from cython import bint # C int coerced to bool.
 #from cpython cimport int # Use Python int.
 
-prev_buffer_hash: Dict[cy.int, cy.int] = {} # Hashes indexed by buffer number.
-foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Cache of all the computed foldlevel values.
+buffer_change_indicator_dict: Dict[cy.int, cy.int] = {} # Digested states, by buffer number.
+foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Cache of foldlevel values, by buffer num.
+
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
 foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel (debugging)
+
+saved_buffer_lines_dict: Dict(cy.int, List(str)) = {} # Hashes indexed by buffer number.
+
+fold_keywords_matcher = None # Global set to compiled regex that matches keywords.
+default_fold_keywords = "class,def,cdef,cpdef,async def"
 
 def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
                   foldnestmax:int=20, shiftwidth:int=4, test_buffer=None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
     zero.  The `test_buffer` if for passing in a mock of the `vim.current.buffer`
-    object in debugging and testing."""
+    object in debugging and testing.
+
+    Values are cached and cached values are returned if the buffer-change
+    indicator does not indicate changes."""
     global recalcs, foldfun_calls # Debugging counts, persistent.
+    global saved_buffer_lines_dict
 
     foldnestmax = int(foldnestmax)
     shiftwidth = int(shiftwidth)
     lnum = int(lnum) - 1 # Compensate for different numbering convention.
 
     if not TESTING:
-        buffer_lines = vim.current.buffer
+        vim_buffer_lines = vim.current.buffer
     else:
-        buffer_lines = test_buffer
-
-    # Convert the buffer into an ordinary list of strings, for easier Cython.
-    buffer_lines = tuple(i for i in buffer_lines)
-    assert buffer_lines
+        vim_buffer_lines = test_buffer
 
     if USE_CACHING:
-        if cur_undo_sequence is None:
-            buffer_hash = hash(tuple(buffer_lines))
+        if EXPERIMENTAL:
+            # Beginnings of an experiment in finding the exact change lines by
+            # saving lines or line hashes.  Would make for faster updates if
+            # you also save enough state to jump into calculate_foldlevels in
+            # the middle of the file.
+            #
+            # Note, maybe combine with using the cur_undo_sequence as the hash
+            # and then only search to find diffs when those don't match, so
+            # only do this stuff on dirty cache event, not here.
+            dirty_cache = True
+            saved_buffer_lines = saved_buffer_lines_dict.get(cur_buffer_num, [])
+            if saved_buffer_lines:
+                vim_buffer_lines_len = len(vim_buffer_lines)
+                saved_buffer_lines_len = len(saved_buffer_lines)
+                dirty_cache = (saved_buffer_lines_len != vim_buffer_lines_len
+                               or any(saved_buffer_lines[i] != vim_buffer_lines[i]
+                                      for i in range(vim_buffer_lines_len)))
         else:
-            buffer_hash = cur_undo_sequence
-        dirty_cache = buffer_hash != prev_buffer_hash.get(cur_buffer_num, -1)
-        prev_buffer_hash[cur_buffer_num] = buffer_hash
+            if cur_undo_sequence is None:
+                # Convert the buffer into an ordinary list of strings, for easier Cython.
+                buffer_lines = tuple(i for i in vim_buffer_lines)
+                compacted_buffer_state = hash(buffer_lines)
+            else:
+                compacted_buffer_state = cur_undo_sequence
+            dirty_cache = compacted_buffer_state != buffer_change_indicator_dict.get(
+                                                                 cur_buffer_num, -1)
+            buffer_change_indicator_dict[cur_buffer_num] = compacted_buffer_state
     else:
         dirty_cache = True
-    #print(" prev_buffer_hash=", prev_buffer_hash[cur_buffer_num], " dirty=", dirty_cache, " calls=",
+    #print(" buffer_change_indicator_dict=", buffer_change_indicator_dict[cur_buffer_num], " dirty=", dirty_cache, " calls=",
     #        foldfun_calls, " cur_buffer_num=", cur_buffer_num, type(cur_buffer_num), sep="")
 
     #print("updating folds========================================================begin", foldfun_calls)
     if dirty_cache:
         #print("updating folds, dirty........................................................", recalcs)
         # Get a new foldlevel_cache list and recalculate all the foldlevels.
-        new_cache_list = [0] * len(buffer_lines)
+        new_cache_list = [0] * len(vim_buffer_lines)
         foldlevel_cache[cur_buffer_num] = new_cache_list
-        calculate_foldlevels(new_cache_list, buffer_lines, shiftwidth)
+        calculate_foldlevels(new_cache_list, vim_buffer_lines, shiftwidth)
         recalcs += 1
         #print("done with folds.......................................................done", recalcs)
+        if EXPERIMENTAL:
+            saved_buffer_lines_dict[cur_buffer_num] = [i for i in vim_buffer_lines]
 
     foldlevel = foldlevel_cache[cur_buffer_num][lnum]
     #foldlevel = min(foldlevel, foldnestmax)
@@ -180,30 +212,40 @@ def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
     return foldlevel
 
 def delete_buffer_cache(buffer_num: int):
-    """Remove the saved cache information for the buffer with the given number.  This is meant to be
-    called when the buffer is closed, to avoid wasting memory."""
+    """Remove the saved cache information for the buffer with the given number.
+    This is meant to be called when the buffer is closed, to avoid wasting
+    memory."""
     # This function is getting called twice for some reason, so check for the key before del.
-    if buffer_num in prev_buffer_hash:
-        del prev_buffer_hash[buffer_num]
+    if buffer_num in buffer_change_indicator_dict:
+        del buffer_change_indicator_dict[buffer_num]
     if buffer_num in foldlevel_cache:
         del foldlevel_cache[buffer_num]
+
+def setup_regex_pattern(pat_string):
+    """Set up the regex to match the keywords in the list `pat_list`.  The
+    `pat_string` should be a comma-separated list of keywords."""
+    global fold_keywords_matcher, max_pat_len
+    # Note single space added after each keyword.
+    pattern_string = " |".join(pat_string.split(",")) + " "
+    fold_keywords_matcher = re.compile(r"[ \t]*(?P<keyword>{})".format(pattern_string))
+
+setup_regex_pattern(default_fold_keywords)
 
 cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
                                     in_string: cy.int, indent_spaces: cy.int,
                                     also_for:bint=False, also_while:bint=False):
-        """Boolean for whether fun or class def begins on the line."""
-        #also_for = True
-        #also_while = True
-        if prev_nested or in_string: return False
-        if line[indent_spaces:indent_spaces+4] == "def ": return True
-        # TODO: remember cython enabled here...
-        if line[indent_spaces:indent_spaces+5] == "cdef ": return True
-        if line[indent_spaces:indent_spaces+5] == "cpdef ": return True
-        if line[indent_spaces:indent_spaces+6] == "class ": return True
-        if line[indent_spaces:indent_spaces+10] == "async def ": return True
-        if also_for and line[indent_spaces:indent_spaces+4] == "for ": return True
-        if also_while and line[indent_spaces:indent_spaces+6] == "while ": return True
+    """Boolean for whether fun or class def begins on the line."""
+    if prev_nested or in_string:
         return False
+    # Passing a slice avoids having to skip the beginning, but has a copy cost, which better?
+    #max_pat_len: cy.int = 6 # Largest keyword pattern.
+    #matchobject = re.match(fold_keywords_matcher, line[indent_spaces:indent_spaces+max_pat_len])
+    matchobject = re.match(fold_keywords_matcher, line)
+    if matchobject:
+        retval = matchobject.group("keyword")
+    else:
+        retval = ""
+    return retval
 
 cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],
                                              start_line_num: cy.int, foldlevel_value: cy.int):
@@ -259,12 +301,6 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     foldlevel_stack: List[cy.int] = [0]
     fold_indent_spaces_stack: List[cy.int] = [0]
 
-    # New foldlevels and copies saved to avoid overwrites.
-    new_foldlevel: cy.int = 0
-    new_foldlevel_copy: cy.int = 0
-    new_fold_indent_spaces: cy.int = 0
-    new_fold_indent_spaces_copy: cy.int = 0
-
     # Properties of lines and which hold across lines.
     foldlevel: cy.int = 0
     prev_foldlevel: cy.int = 0
@@ -295,6 +331,12 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
 
     def is_nested():
         return nest_parens or nest_brackets or nest_braces
+
+    # New foldlevels and copies saved to avoid overwrites.
+    new_foldlevel: cy.int = 0
+    new_foldlevel_copy: cy.int = 0
+    new_fold_indent_spaces: cy.int = 0
+    new_fold_indent_spaces_copy: cy.int = 0
 
     # Loop over the lines.
     line_num: cy.int = -1
@@ -559,7 +601,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                               else prev_indent_spaces)
         prev_line_has_a_continuation = line_has_a_contination
 
-    # Handle the case where foldlevel of last line was set to -5; replace sequence with 0.
+    # Handle the case where foldlevel of previous line was set to -5; replace sequence with 0.
     if foldlevel_cache[line_num] == -5:
         replace_preceding_minus_five_foldlevels(foldlevel_cache, line_num, 0)
 
