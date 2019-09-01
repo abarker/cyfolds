@@ -239,8 +239,6 @@ def setup_regex_pattern(fold_keywords_string=default_fold_keywords):
 
     fold_keywords_matcher = re.compile(r"(?P<keyword>{})".format(pattern_string))
 
-#setup_regex_pattern(default_fold_keywords) # Now setup call from python.vim inits them.
-
 cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
                                     in_string: cy.int, indent_spaces: cy.int,
                                     also_for:bint=False, also_while:bint=False):
@@ -280,6 +278,21 @@ cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], fold_indent_spaces
         foldlevel_stack.append(new_foldlevel)
         fold_indent_spaces_stack.append(new_fold_indent_spaces)
     return new_foldlevel
+
+cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
+                                         fold_indent_spaces_stack: List[cy.int],
+                                         foldlevel_stack: List[cy.int]):
+    """Revert to previous foldlevel, according to how far the dedent went.  Return
+    the new `prev_indent_spaces` and `prev_foldlevel`."""
+    while (len(fold_indent_spaces_stack) >= 1
+            and indent_spaces < fold_indent_spaces_stack[-1]):
+        fold_indent_spaces_stack.pop()
+        foldlevel_stack.pop()
+    prev_indent_spaces = fold_indent_spaces_stack[-1]
+    prev_foldlevel = foldlevel_stack[-1]
+    if DEBUG:
+        print("   <-- decreasing foldlevel to {}".format(prev_foldlevel))
+    return prev_indent_spaces, prev_foldlevel
 
 cdef cy.int get_foldlevel_increment(curr_foldlevel: cy.int, indent_spaces: cy.int,
                                     shiftwidth: cy.int):
@@ -355,13 +368,13 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     for line_num in range(buffer_len):
         line = buffer_lines[line_num]
 
-        ends_with_triple_quote: bint
-        ends_with_colon: bint
-        begins_with_triple_quote: bint
-        indent_spaces: cy.int
-        last_non_whitespace_index: cy.int
-        line_is_only_comment: bint
-        is_empty: bint
+        ends_with_triple_quote: bint   # Ends with non-nested, not-in-string triple quote.
+        ends_with_colon: bint          # Ends with non-nested, not-in-string colon.
+        begins_with_triple_quote: bint # Begins with non-nested, not-in-string triple quote.
+        indent_spaces: cy.int          # The number of spaces the line is indented.
+        last_non_whitespace_index: cy.int # Last non-whitespace on the line.
+        line_is_only_comment: bint     # Line contains only a comment.
+        is_empty: bint                 # Line is empty.
 
         if prev_line_has_a_continuation:
             indent_spaces = 0
@@ -491,8 +504,9 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         #
         # Only code not in brackets of some sort should trigger a dedent.  Note comments
         # are allowed to trigger a dedent (no check for line_is_only_comment).
-        dedent: bint = (not prev_in_string and not prev_nested
+        dedent: bint = (not prev_in_string and not prev_nested # Physical dedent.
                         and not is_empty and (prev_indent_spaces > indent_spaces))
+
         if DEBUG:
             print("\n|{:<5}|".format(line_num), line, "\n", sep="")
             print("   dedent=", dedent, "  prev_indent_spaces=",
@@ -500,17 +514,11 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     is_empty, "  line_is_only_comment=", line_is_only_comment,
                     "\n   nested=", nested, "  in_string=", in_string,
                     "  prev_in_string=", prev_in_string, sep="")
-        if dedent:
-            # Revert to previous foldlevel, according to how far the dedent went.
-            if indent_spaces < fold_indent_spaces_stack[-1]:
-                while (len(fold_indent_spaces_stack) >= 1
-                        and indent_spaces < fold_indent_spaces_stack[-1]):
-                    ind = fold_indent_spaces_stack.pop()
-                    fld = foldlevel_stack.pop()
-                prev_indent_spaces = fold_indent_spaces_stack[-1]
-                prev_foldlevel = foldlevel_stack[-1]
-                if DEBUG:
-                    print("   <-- decreasing foldlevel to {}".format(prev_foldlevel))
+
+        if dedent and indent_spaces < fold_indent_spaces_stack[-1]: # Logical dedent.
+            prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
+                                                                    fold_indent_spaces_stack,
+                                                                    foldlevel_stack)
 
         #
         # Begin setting the foldlevels for various cases.
@@ -520,6 +528,16 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
 
         if is_empty:
             foldlevel = -5 # The -5 value is later be replaced by the succeeding foldlevel.
+
+        """
+        if begins_with_triple_quote and fold_docstrings:
+            foldlevel = increase_foldlevel(foldlevel_stack,
+                                           fold_indent_spaces_stack,
+                                           new_foldlevel_copy,
+                                           new_fold_indent_spaces_copy)
+        """
+
+
 
         if not is_empty or prev_line_has_a_continuation:
             # This part is the finite-state machine handling docstrings after fundef.
