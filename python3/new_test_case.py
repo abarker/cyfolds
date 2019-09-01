@@ -50,7 +50,7 @@ def main_crop(
 
 
 def x():
-    def y():
+    def y(): # Nested one level.
         def z():
             """Triple nest
 
@@ -62,8 +62,14 @@ def a():
     pass
 def b():
     pass
-def c():
+def c(): # This fun has comment on its line and only docstring.
     """pass"""
+
+def indented_docstring_end():
+    """This docstring ends
+       indented, but logically it is not.
+                 """
+    pass
 
 with open("egg") as f:
     def fun_in_with():
@@ -80,7 +86,7 @@ with open("egg") as f:
 x = \
         5
 
-# This one fails because colon at end of line is checked and missing.
+# This one fails because colon at end of line is checked and found missing.
 def \
         continued(): \
         \
@@ -92,4 +98,10 @@ def \
 
     """Real docstring \"   """
     x += 4
+
+def fun_with_continuation_args(
+        a1, \
+        a2=2, \
+        ): # These would be nested if not continued.
+    pass
 

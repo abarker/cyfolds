@@ -8,6 +8,8 @@ Program to set vim folding levels for Python code.  Made to be syntax-based and
 fast.  Only classes and functions are folded, and docstrings are left unfolded
 on the same level as the definition line.
 
+Note that `setup_regex_pattern` must be called before `get_foldlevel`.
+
 Notes:
 ------
 
@@ -70,14 +72,14 @@ Possible enhancements
 * If you set the foldlevel bump to a really high number for things like for,
   while, and if then you should be able to syntactically define the initial state
   of the folds, open or closed, by setting foldlevel.  See :help foldlevelstart.
+  Downside is that folds inside, say, a high-foldlevel "if" statement will also
+  be unfolded, even if they are def, class, etc.  Would work better for docstrings
+  if you could force an artificial dedent after it (since it doesn't nest).
 
-* Add options to also fold for, while, if, with, and try.  Have a function that
-  is passed the arguments for what to fold which then sets and compiles a global
-  regex to use.  They mostly work now, but not all cases (at least not tested).
-  Also, cdef for Cython code::
+* Add a list type for high-foldlevel jump keywords::
 
-     let g:cyfolds_keywords_closed_by_default = ['def', 'async def', 'class', 'cdef']
-     let g"cyfolds_keywords_open_by_default = ['if', 'for', 'while']
+     let g:cyfolds_fold_keywords = ['def', 'async def', 'class', 'cdef']
+     let g"cyfolds_high_foldlevel_keywords = ['if', 'for', 'while']
 
 * Find a faster way to tell if the buffer changed, i.e., if the cache is dirty.
   If you had the precise line numbers of all the changes you could speed up the
@@ -93,14 +95,11 @@ Possible enhancements
   search or hash over the whole file to tell what changed.  Updating is a pain
   with blocks.
 
-* vimscript function to dynamically set the keywords folded on.  Easy to add.
+* Maybe have an option to number indents sequentially instead of number of
+  spaces.  Might be more like what some people expect, maybe not.  Number by
+  indents (current way) seems more intuitive to me.
 
-* Maybe have an option to number indents by number of spaces.  Might be more
-  line what some people expect, such as when a function definition is nested
-  inside a for loop.
-
-* Make sure line ends in semicolon at end of fundef, while, etc., just as an
-  extra check that's easy to do.  Otherwise, don't do new fold.
+* Set up a test suite, at least for the Python code part.
 
 """
 
@@ -229,7 +228,7 @@ keyword_pattern_dict: Dict = {"else": "else:",
                               "except": "except |except:",
                              }
 
-def setup_regex_pattern(fold_keywords_string):
+def setup_regex_pattern(fold_keywords_string=default_fold_keywords):
     """Set up the regex to match the keywords in the list `pat_list`.  The
     `pat_string` should be a comma-separated list of keywords."""
     global fold_keywords_matcher
@@ -238,7 +237,7 @@ def setup_regex_pattern(fold_keywords_string):
     keywords_list = [keyword_pattern_dict.get(k, k + " ") for k in keywords_list]
     pattern_string = "|".join(keywords_list)
 
-    fold_keywords_matcher = re.compile(r"[ \t]*(?P<keyword>{})".format(pattern_string))
+    fold_keywords_matcher = re.compile(r"(?P<keyword>{})".format(pattern_string))
 
 #setup_regex_pattern(default_fold_keywords) # Now setup call from python.vim inits them.
 
@@ -248,10 +247,11 @@ cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
     """Boolean for whether fun or class def begins on the line."""
     if prev_nested or in_string:
         return False
-    # Passing a slice avoids having to skip the beginning, but has a copy cost, which better?
-    #max_pat_len: cy.int = 6 # Largest keyword pattern.
+    # Passing a slice vs. setting the pos and endpos seems not to make much difference in
+    # the time.
+    max_pat_len: cy.int = 8 # Largest keyword pattern ('finally:').
     #matchobject = re.match(fold_keywords_matcher, line[indent_spaces:indent_spaces+max_pat_len])
-    matchobject = re.match(fold_keywords_matcher, line)
+    matchobject = fold_keywords_matcher.match(line, indent_spaces, indent_spaces+max_pat_len)
     if matchobject:
         retval = matchobject.group("keyword")
     else:
@@ -376,7 +376,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
 
         line_len: cy.int = len(line)
 
-        # Find the indent level and identify empty strings.
+        # Go to first non-whitespce to find the indent level and identify empty strings.
         i: cy.int = -1
         for i in range(line_len):
             char = line[i]
@@ -469,11 +469,16 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             if char == "(": nest_braces += 1; continue
             elif char == ")": nest_braces -= 1; continue
 
-            if prev_line_has_a_continuation:
-                indent_spaces = prev_indent_spaces
         #
         # Back in loop over lines; calculate foldlevel for the line based on computed info.
         #
+
+        # Now that the line is processed the indent_spaces values are just used to
+        # detect dedents and set fold values.  Set the indent_spaces of continuation
+        # lines and lines in strings to the previous line's indent value (the logical
+        # indent value).  These propagate forward for multi-line indents and continuations.
+        if prev_line_has_a_continuation or prev_in_string:
+            indent_spaces = prev_indent_spaces
 
         # Look for backslash line continuation at the end.
         line_has_a_contination = line and line[-1] == "\\"
@@ -493,20 +498,17 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             print("   dedent=", dedent, "  prev_indent_spaces=",
                     prev_indent_spaces, "  indent_spaces=", indent_spaces, "  is_empty=",
                     is_empty, "  line_is_only_comment=", line_is_only_comment,
-                    "\n   nested=", nested, "  in_string=", in_string, sep="")
+                    "\n   nested=", nested, "  in_string=", in_string,
+                    "  prev_in_string=", prev_in_string, sep="")
         if dedent:
             # Revert to previous foldlevel, according to how far the dedent went.
             if indent_spaces < fold_indent_spaces_stack[-1]:
                 while (len(fold_indent_spaces_stack) >= 1
                         and indent_spaces < fold_indent_spaces_stack[-1]):
-                    #print("POPPING stacks, indent and foldlevel are:",
-                    #      fold_indent_spaces_stack, foldlevel_stack)
                     ind = fold_indent_spaces_stack.pop()
                     fld = foldlevel_stack.pop()
-                    #print("POPPED foldlevel_stack", ind, fld)
                 prev_indent_spaces = fold_indent_spaces_stack[-1]
                 prev_foldlevel = foldlevel_stack[-1]
-                #print("set prev_foldlevel to", prev_foldlevel)
                 if DEBUG:
                     print("   <-- decreasing foldlevel to {}".format(prev_foldlevel))
 

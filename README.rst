@@ -38,13 +38,14 @@ Turn on folding in vim and plugins in general if you haven't already::
   filetype plugin on
 
 New commands
-~~~~~~~~~~~~
+------------
 
 Use ``z,`` to pause the regular (expr) mode and go to manual mode.  When in
 manual mode there is no fold updating, including on leaving insert mode (the
 small delay there can be annoying during heavy editing).  To toggle back to
 regular mode hit ``z,`` again.  Folds are updated automatically upon toggling
-back.  The existing folds and their states are left unchanged.
+back.  The existing folds and their states are left unchanged.  In manual mode
+you can hit ``z,`` twice to force a fold update and stay in manual mode.
 
 Use ``zuz`` to force the folds to be updated (same as the FastFolds mapping,
 but only in Python).  Folds can get messed up, for example, when deleting
@@ -54,7 +55,7 @@ regular (expr) mode.  Use ``z,`` to return to manual mode.  This command is
 bound to the function call ``CyfoldsForceFoldUpdate()``.
 
 Settings
-~~~~~~~~
+--------
 
 You can define which particular keywords are folded after by setting this
 configuration variable::
@@ -71,8 +72,9 @@ can be used.  The list of all of them in Python is::
    "class,def,async def,while,for,if,else,elif,with,try,except,finally"
 
 If a docstring appears immediately after any such definition it will remain
-unfolded along with the main statement.  This list can be reset dynamically
-by passing the new list to the function ``CyfoldsSetFoldKeywords(keyword_str)``.
+unfolded just under the opening statement.  This list can be reset dynamically
+by passing the new list to the function
+``CyfoldsSetFoldKeywords(keyword_str)``.
 
 To disable loading of the Cyfolds plugin use this in your ``.vimrc``::
 
@@ -110,7 +112,13 @@ FastFolds
 If you use the FastFolds plugin, consider turning it off for Python files when
 using Cyfolds.  This is because FastFolds remaps the folding keys to call
 update each time, which can cause a slight lag in the time to open and close a
-fold.  The command is::
+fold.  It also redefines ``zuz``, and its mechanism to switch off in insert
+mode might conflict with Cyfolds.  The full command for a ``.vimrc`` is::
 
-   let g:fastfold_skip_filetypes=['python']
+   autocmd <silent> filetype python
+                          \ let g:fastfold_skip_filetypes=['python'] |
+                          \ nmap <SID>(DisableFastFoldUpdate) <Plug>(FastFoldUpdate) |
+                          \ let g:fastfold_savehook = 0
+
+Note that this only applies to Python files.
 
