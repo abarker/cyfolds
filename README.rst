@@ -40,16 +40,18 @@ Turn on folding in vim and plugins in general if you haven't already::
 New commands
 ~~~~~~~~~~~~
 
+Use ``z,`` to pause the regular (expr) mode and go to manual mode.  When in
+manual mode there is no fold updating, including on leaving insert mode (the
+small delay there can be annoying during heavy editing).  To toggle back to
+regular mode hit ``z,`` again.  Folds are updated automatically upon toggling
+back.  The existing folds and their states are left unchanged.
+
 Use ``zuz`` to force the folds to be updated (same as the FastFolds mapping,
 but only in Python).  Folds can get messed up, for example, when deleting
 characters with ``x`` or lines with ``dd``.  This happens because those change
-events do not trigger vim to update the folds.
-
-Use ``z,`` to pause the regular (expr) mode and go to manual mode.  When in
-manual mode there is no fold updating, including on leaving insert mode (the
-small delay there can be annoying during heavy editing).  To toggle regular
-mode back on hit ``z,`` again.  Folds are updated automatically upon toggling
-back.  The existing folds and their states are left unchanged.
+events do not trigger vim to update the folds.  This command switches back to
+regular (expr) mode.  Use ``z,`` to return to manual mode.  This command is
+bound to the function call ``CyfoldsForceFoldUpdate()``.
 
 Settings
 ~~~~~~~~
@@ -70,7 +72,7 @@ can be used.  The list of all of them in Python is::
 
 If a docstring appears immediately after any such definition it will remain
 unfolded along with the main statement.  This list can be reset dynamically
-by passing the new list to the function ``CyfoldsSetFoldKeywords``.
+by passing the new list to the function ``CyfoldsSetFoldKeywords(keyword_str)``.
 
 To disable loading of the Cyfolds plugin use this in your ``.vimrc``::
 

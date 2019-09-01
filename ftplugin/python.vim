@@ -167,8 +167,7 @@ function! CyfoldsForceFoldUpdate()
     " Could be used inside other commands, but has a little fun-call overhead.
     let l:update_saved_foldmethod = &l:foldmethod
     setlocal foldmethod=manual
-    "setlocal foldmethod=expr
-    let &l:foldmethod=l:update_saved_foldmethod
+    setlocal foldmethod=expr
 endfunction
 
 
@@ -217,6 +216,10 @@ function CyfoldsToggleManualFolds()
    echom "foldmethod=" . &l:foldmethod
 endfunction
 
+" Define z, to force a fold update without changing states of folds.
+" Note FastFolds defines a similar command to the zuz keys.
+nnoremap <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+nnoremap <silent> z, :call CyfoldsToggleManualFolds()<CR>
 
 "nnoremap <silent> z, :call SuperFoldToggle(line("."))<cr>
 
