@@ -2,8 +2,8 @@
 def handle_options_on_cropped_file(
         input_doc_fname,
         output_doc_fname):
-    """Handle the options which apply after the file is written such as previewing
-    and renaming."""
+    """Handle the 'options "which" apply' "after" the file is written such
+    as previewing and renaming."""
 
     def do_preview(output_doc_fname):
         """ """
@@ -76,7 +76,7 @@ with open("egg") as f:
         x = 5
         y = 5
 
-    egg = 5
+    egg = "'"; zed = """ "." """
 
     def another_in_with():
         """Docstring."""
@@ -84,7 +84,11 @@ with open("egg") as f:
         w = 8
 
 x = \
-        5
+        list((5,))
+
+if x == 5: return 66
+y = 6; x = (
+    4 + 4)
 
 # This one fails because colon at end of line is checked and found missing.
 def \

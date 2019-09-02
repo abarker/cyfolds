@@ -17,17 +17,30 @@ details of the algorithm.
 Installation
 ------------
 
-When using a plugin manager like pathogen just clone this directory into the
-``bundle`` directory.
+1. When using a plugin manager such as pathogen just clone this GitHub repo
+   into the ``bundle`` directory of your ``.vim`` directory.
 
-The Cython code needs to be compiled before use.  The Python build requirements
-are cython and setuptools.  This command will install them::
+2. The C code produced by Cython needs to be compiled before use.  In order to
+   do this you need to have a C compiler installed.  On Ubuntu or Debian
+   systems you can type::
 
-   pip3 install cython setuptools --user
+      sudo apt-get install build-essential
 
-Go to the cloned repo and into the ``python3`` directory.   Run the Bash script
-``compile`` that is in that directory (if you cannot run Bash, you can run
-``python3 setup.py build_ext --inplace`` directly from the command line).
+   On Windows the free MinGW compiler is one option.  To install it, see
+   https://cython.readthedocs.io/en/latest/src/tutorial/appendix.html.
+   For Mac OS X systems the Cython install page suggests Apple's XCode
+   compiler: https://developer.apple.com/.
+
+3. After you have the compiler set up, the Python build requirements
+   are Cython and setuptools.  This command will install them::
+
+      pip3 install cython setuptools --user --upgrade
+
+4. Now go to the cloned repo and into the ``python3`` directory.   Run the Bash script
+   ``compile`` located in that directory (if you cannot run Bash, you can run
+   ``python3 setup.py build_ext --inplace`` directly from the command line).
+
+The plugin is now ready to use in vim.
 
 Configuration
 -------------
@@ -42,17 +55,18 @@ New commands
 
 Use ``z,`` to pause the regular (expr) mode and go to manual mode.  When in
 manual mode there is no fold updating, including on leaving insert mode (the
-small delay there can be annoying during heavy editing).  To toggle back to
-regular mode hit ``z,`` again.  Folds are updated automatically upon toggling
-back.  The existing folds and their states are left unchanged.  In manual mode
-you can hit ``z,`` twice to force a fold update and stay in manual mode.
+small delay there can be annoying during heavy, fast editing).  To toggle back
+to regular mode hit ``z,`` again.  Folds are updated automatically upon
+toggling back.  The existing folds and their states are left unchanged.  In
+manual mode you can hit ``z,`` twice to force a fold update and return to mode.
+This command is mapped to the function call ``CyfoldsToggleManualFolds()``.
 
 Use ``zuz`` to force the folds to be updated (same as the FastFolds mapping,
 but only in Python).  Folds can get messed up, for example, when deleting
 characters with ``x`` or lines with ``dd``.  This happens because those change
-events do not trigger vim to update the folds.  This command switches back to
-regular (expr) mode.  Use ``z,`` to return to manual mode.  This command is
-bound to the function call ``CyfoldsForceFoldUpdate()``.
+events do not trigger vim to update the folds.  This command always switches
+back to regular (expr) mode.  Use ``z,`` to return to manual mode.  This
+command is mapped to the function call ``CyfoldsForceFoldUpdate()``.
 
 Settings
 --------
@@ -79,10 +93,6 @@ by passing the new list to the function
 To disable loading of the Cyfolds plugin use this in your ``.vimrc``::
 
    let g:cyfolds = 0
-
-To suppress switching fold updates off in insert mode (not recommended)::
-
-   let g:suppress_insert_mode_switching = 1
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode vim updates the folds on every character,

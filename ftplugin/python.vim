@@ -2,6 +2,20 @@
 " initialization and then defines the function which will be set as the
 " foldeval value to compute the foldlevels.
 
+" This function is always loaded because it is useful for folding in general
+" and I bind it to space bar.
+function! CyfoldsSuperFoldToggle(lnum)
+    " Force the fold under to cursor to immediately open or close.  Unlike za
+    " it only takes one application to open any fold.  Unlike zO it does not
+    " open recursively, it only opens the current fold.
+    if foldclosed('.') == -1
+       exe 'silent!norm! zc'
+    else 
+       exe 'silent!norm! 99zo'
+    endif
+endfunction
+
+
 if !exists('g:cyfolds')
    let g:cyfolds = 1
 endif
@@ -16,8 +30,10 @@ let g:loaded_cyfolds = 1
 " ==== Initialization. =========================================================
 " ==============================================================================
 
-setlocal foldmethod=expr
-setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+autocmd BufEnter *.py setlocal foldmethod=expr
+autocmd BufEnter *.pyx setlocal foldmethod=expr
+autocmd BufEnter *.py setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+autocmd BufEnter *.pyx setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
 
 if has('win32') || has ('win64')
     let vimhome = $VIM."/vimfiles"
@@ -49,6 +65,7 @@ from cyfolds import get_foldlevel, delete_buffer_cache, setup_regex_pattern
 setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
 
+
 function! CyfoldsSetFoldKeywords(keyword_str)
    " Dynamically assign the folding keywords to those on the string `keyword_str`.
    let g:cyfolds_fold_keywords = a:keyword_str
@@ -75,19 +92,20 @@ python3 << ----------------------- PythonCode ----------------------------------
 foldlevel in the global variable pyfoldlevel."""
 
 # Set some Python variables from vim ones, to pass as args to get_foldlevel.
+# Make sure the arguments to get_foldlevel are all ints.
 lnum = int(vim.eval("a:lnum"))
 shiftwidth = int(vim.eval("&shiftwidth"))
 foldnestmax = int(vim.eval("&foldnestmax"))
 cur_buffer_num = int(vim.eval("bufnr('%')"))
 hash_for_changes = int(vim.eval("g:hash_for_changes"))
 if hash_for_changes:
-    cur_undo_sequence = None
+    cur_undo_sequence = -1 # Used like None.
 else:
-     cur_undo_sequence = vim.eval("undotree().seq_cur")
+     cur_undo_sequence = int(vim.eval("undotree().seq_cur"))
 
 # Call the Cython function to do the computation.
 computed_foldlevel = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
-                                    foldnestmax, shiftwidth)
+                                   foldnestmax, shiftwidth)
 
 # Set the return value as a global vim variable, to pass it back to vim.
 vim.command("let g:pyfoldlevel = {}".format(computed_foldlevel))
@@ -109,13 +127,15 @@ endfunction
 
 " Call the delete function when the BufDelete event happens.
 autocmd BufDelete *.py call DeleteBufferCache(expand('<abuf>'))
+autocmd BufDelete *.pyx call DeleteBufferCache(expand('<abuf>'))
 
 
 " ==============================================================================
 " ==== Turn off fold updating in insert mode, and update after TextChanged.  ===
 " ==============================================================================
 
-let b:suppress_insert_mode_switching = 0
+autocmd BufEnter *.py let b:suppress_insert_mode_switching = 0
+autocmd BufEnter *.pyx let b:suppress_insert_mode_switching = 0
 
 "augroup unset_python_folding_in_insert_mode
 "    autocmd!
@@ -193,17 +213,6 @@ endfunction
 "foldclosed(line("."))
 "noremap <F1> :execute "normal! i" . ( line(".") + 1 )<cr>
 
-function CyfoldsSuperFoldToggle(lnum)
-    " Force the fold under to cursor to immediately open or close.  Unlike za
-    " it only takes one application to open any fold.  Unlike zO it does not
-    " open recursively, it only opens the current fold.
-    if foldclosed('.') == -1
-       exe 'silent!norm! zc'
-    else 
-       exe 'silent!norm! 99zo'
-    endif
-endfunction
-
 function CyfoldsToggleManualFolds()
    " Toggle folding method between current one and manual.  Useful when
    " editing a lot and the slight delay on leaving insert mode becomes annoying.
@@ -221,11 +230,9 @@ endfunction
 nnoremap <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
 nnoremap <silent> z, :call CyfoldsToggleManualFolds()<CR>
 
-"nnoremap <silent> z, :call SuperFoldToggle(line("."))<cr>
-
 " Redefine search, maybe open:
 " https://stackoverflow.com/questions/54657330/how-to-override-redefine-vim-search-command
 "
 " something like :g/egg/foldopen
 " https://stackoverflow.com/questions/18805584/how-to-open-all-the-folds-containing-a-search-pattern-at-the-same-time
-"
+

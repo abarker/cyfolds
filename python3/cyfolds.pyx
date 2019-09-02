@@ -103,6 +103,8 @@ Possible enhancements
 
 """
 
+# TODO:  Semicolons, do they make any difference?  Not in most cases, but...
+
 DEBUG: bint = False
 TESTING: bint = False
 USE_CACHING: bint = True
@@ -139,29 +141,32 @@ foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel
 saved_buffer_lines_dict: Dict(cy.int, List(str)) = {} # Hashes indexed by buffer number.
 
 fold_keywords_matcher = None # Global set to compiled regex that matches keywords.
-default_fold_keywords = "class,def,cdef,cpdef,async def"
+default_fold_keywords: str = "class,def,cdef,cpdef,async def"
 
-def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
-                  foldnestmax:int=20, shiftwidth:int=4, test_buffer=None):
+def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int, cur_undo_sequence:cy.int=-1,
+                  foldnestmax:cy.int=20, shiftwidth:cy.int=4, test_buffer=None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
     zero.  The `test_buffer` if for passing in a mock of the `vim.current.buffer`
     object in debugging and testing.
 
     Values are cached and cached values are returned if the buffer-change
-    indicator does not indicate changes."""
+    indicator does not indicate changes.
+
+    The -1 value for cur_undo_sequence represents a None value, and means to use
+    hashing instead for dirty-cache change detection."""
+    # Be SURE that all int args passed to this function have been converted from strings.
     global recalcs, foldfun_calls # Debugging counts, persistent.
     global saved_buffer_lines_dict
 
-    foldnestmax = int(foldnestmax)
-    shiftwidth = int(shiftwidth)
-    lnum = int(lnum) - 1 # Compensate for different numbering convention.
+    lnum -= 1 # Compensate for different numbering convention, vim vs. Python.
 
     if not TESTING:
         vim_buffer_lines = vim.current.buffer
     else:
         vim_buffer_lines = test_buffer
 
+    dirty_cache: bint
     if USE_CACHING:
         if EXPERIMENTAL:
             # Beginnings of an experiment in finding the exact change lines by
@@ -175,18 +180,19 @@ def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
             dirty_cache = True
             saved_buffer_lines = saved_buffer_lines_dict.get(cur_buffer_num, [])
             if saved_buffer_lines:
-                vim_buffer_lines_len = len(vim_buffer_lines)
-                saved_buffer_lines_len = len(saved_buffer_lines)
-                dirty_cache = (saved_buffer_lines_len != vim_buffer_lines_len
-                               or any(saved_buffer_lines[i] != vim_buffer_lines[i]
-                                      for i in range(vim_buffer_lines_len)))
+                vim_buffer_lines_len: cy.int = len(vim_buffer_lines)
+                saved_buffer_lines_len: cy.int = len(saved_buffer_lines)
+                dirty_cache: bint = (saved_buffer_lines_len != vim_buffer_lines_len
+                                     or any(saved_buffer_lines[i] != vim_buffer_lines[i]
+                                     for i in range(vim_buffer_lines_len)))
         else:
-            if cur_undo_sequence is None:
+            if cur_undo_sequence == -1:
                 # Convert the buffer into an ordinary list of strings, for easier Cython.
                 buffer_lines = tuple(i for i in vim_buffer_lines)
-                compacted_buffer_state = hash(buffer_lines)
+                compacted_buffer_state: cy.int = hash(buffer_lines) # NOTE: really Py_ssize_t
             else:
-                compacted_buffer_state = cur_undo_sequence
+                compacted_buffer_state: cy.int = cur_undo_sequence
+
             dirty_cache = compacted_buffer_state != buffer_change_indicator_dict.get(
                                                                  cur_buffer_num, -1)
             buffer_change_indicator_dict[cur_buffer_num] = compacted_buffer_state
@@ -199,7 +205,7 @@ def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
     if dirty_cache:
         #print("updating folds, dirty........................................................", recalcs)
         # Get a new foldlevel_cache list and recalculate all the foldlevels.
-        new_cache_list = [0] * len(vim_buffer_lines)
+        new_cache_list: List[cy.int] = [0] * len(vim_buffer_lines)
         foldlevel_cache[cur_buffer_num] = new_cache_list
         calculate_foldlevels(new_cache_list, vim_buffer_lines, shiftwidth)
         recalcs += 1
@@ -212,7 +218,7 @@ def get_foldlevel(lnum: int, cur_buffer_num: int, cur_undo_sequence:int=None,
     foldfun_calls += 1
     return foldlevel
 
-def delete_buffer_cache(buffer_num: int):
+def delete_buffer_cache(buffer_num: cy.int):
     """Remove the saved cache information for the buffer with the given number.
     This is meant to be called when the buffer is closed, to avoid wasting
     memory."""
@@ -311,6 +317,16 @@ cdef cy.int get_foldlevel_increment(curr_foldlevel: cy.int, indent_spaces: cy.in
     assert increment >= 0
     return increment
 
+cdef bint is_in_string(in_single_quote_string: bint, in_single_quote_docstring: bint,
+                 in_double_quote_string: bint, in_double_quote_docstring: bint):
+    """Combine the separate string conditions into a single in-string condition."""
+    return (in_single_quote_string or in_single_quote_docstring or
+            in_double_quote_string or in_double_quote_docstring)
+
+cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int, nest_braces: cy.int):
+    """Combine the separate nesting levels into a single test for nestedness."""
+    return nest_parens or nest_brackets or nest_braces
+
 cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List[str],
                                shiftwidth: cy.int):
     """Do the actual calculations and return the foldlevel."""
@@ -344,17 +360,10 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     in_single_quote_docstring: bint = False
     in_double_quote_docstring: bint = False
 
-    def is_in_string():
-        return (in_single_quote_string or in_single_quote_docstring or
-                in_double_quote_string or in_double_quote_docstring)
-
     # Nesting in different bracket types.
     nest_parens: cy.int = 0
     nest_brackets: cy.int = 0
     nest_braces: cy.int = 0
-
-    def is_nested():
-        return nest_parens or nest_brackets or nest_braces
 
     # New foldlevels and copies saved to avoid overwrites.
     new_foldlevel: cy.int = 0
@@ -368,9 +377,9 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     for line_num in range(buffer_len):
         line = buffer_lines[line_num]
 
-        ends_with_triple_quote: bint   # Ends with non-nested, not-in-string triple quote.
-        ends_with_colon: bint          # Ends with non-nested, not-in-string colon.
         begins_with_triple_quote: bint # Begins with non-nested, not-in-string triple quote.
+        ends_with_triple_quote: bint   # Ends with non-nested, in-string triple quote.
+        ends_with_colon: bint          # Ends with non-nested, not-in-string colon.
         indent_spaces: cy.int          # The number of spaces the line is indented.
         last_non_whitespace_index: cy.int # Last non-whitespace on the line.
         line_is_only_comment: bint     # Line contains only a comment.
@@ -380,9 +389,9 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             indent_spaces = 0
             line_is_only_comment = False
         else:
+            begins_with_triple_quote = False
             ends_with_triple_quote = False
             ends_with_colon = False
-            begins_with_triple_quote = False
             indent_spaces = 0
             line_is_only_comment = False
             is_empty = False
@@ -418,8 +427,9 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                 break
             char = line[i]
 
-            in_string = is_in_string()
-            nested = is_nested()
+            in_string = is_in_string(in_single_quote_string, in_single_quote_docstring,
+                                     in_double_quote_string, in_double_quote_docstring)
+            nested = is_nested(nest_parens, nest_brackets, nest_braces)
 
             # String escape char.
             if char == "\\" and not escape_char:
@@ -497,8 +507,9 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         line_has_a_contination = line and line[-1] == "\\"
 
         # Consolidate the separate variables checking if in a string or inside brackets.
-        in_string = is_in_string()
-        nested = is_nested()
+        in_string = is_in_string(in_single_quote_string, in_single_quote_docstring,
+                                 in_double_quote_string, in_double_quote_docstring)
+        nested = is_nested(nest_parens, nest_brackets, nest_braces)
 
         # Handle dedents from the previous line.
         #
@@ -530,14 +541,20 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             foldlevel = -5 # The -5 value is later be replaced by the succeeding foldlevel.
 
         """
-        if begins_with_triple_quote and fold_docstrings:
+        # Should this be done here or in states?  Note that in states it doesn't get module
+        # docstrings or ones just in the middle of code...  Note this has to be larger than
+        # the following code's indent for function docstring or they have the same level.
+        fold_docstrings: bint = True # TODO: testing
+        if fold_docstrings and begins_with_triple_quote:
             foldlevel = increase_foldlevel(foldlevel_stack,
                                            fold_indent_spaces_stack,
                                            new_foldlevel_copy,
                                            new_fold_indent_spaces_copy)
+        if fold_docstrings and prev_ends_with_triple_quote: # Need to define var!!!!!
+            prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
+                                                                    fold_indent_spaces_stack,
+                                                                    foldlevel_stack)
         """
-
-
 
         if not is_empty or prev_line_has_a_continuation:
             # This part is the finite-state machine handling docstrings after fundef.
