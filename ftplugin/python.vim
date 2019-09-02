@@ -2,20 +2,6 @@
 " initialization and then defines the function which will be set as the
 " foldeval value to compute the foldlevels.
 
-" This function is always loaded because it is useful for folding in general
-" and I bind it to space bar.
-function! CyfoldsSuperFoldToggle(lnum)
-    " Force the fold under to cursor to immediately open or close.  Unlike za
-    " it only takes one application to open any fold.  Unlike zO it does not
-    " open recursively, it only opens the current fold.
-    if foldclosed('.') == -1
-       exe 'silent!norm! zc'
-    else 
-       exe 'silent!norm! 99zo'
-    endif
-endfunction
-
-
 if !exists('g:cyfolds')
    let g:cyfolds = 1
 endif
@@ -30,10 +16,13 @@ let g:loaded_cyfolds = 1
 " ==== Initialization. =========================================================
 " ==============================================================================
 
-autocmd BufEnter *.py setlocal foldmethod=expr
-autocmd BufEnter *.pyx setlocal foldmethod=expr
-autocmd BufEnter *.py setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
-autocmd BufEnter *.pyx setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+augroup cyfolds_set_up_fold_method_and_expressions
+    autocmd!
+    autocmd BufEnter *.py setlocal foldmethod=expr
+    autocmd BufEnter *.pyx setlocal foldmethod=expr
+    autocmd BufEnter *.py setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+    autocmd BufEnter *.pyx setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+augroup END
 
 if has('win32') || has ('win64')
     let vimhome = $VIM."/vimfiles"
@@ -126,16 +115,22 @@ delete_buffer_cache(buffer_num)
 endfunction
 
 " Call the delete function when the BufDelete event happens.
-autocmd BufDelete *.py call DeleteBufferCache(expand('<abuf>'))
-autocmd BufDelete *.pyx call DeleteBufferCache(expand('<abuf>'))
+augroup cyfolds_delete_buffer_cache
+    autocmd!
+    autocmd BufDelete *.py call DeleteBufferCache(expand('<abuf>'))
+    autocmd BufDelete *.pyx call DeleteBufferCache(expand('<abuf>'))
+augroup END
 
 
 " ==============================================================================
 " ==== Turn off fold updating in insert mode, and update after TextChanged.  ===
 " ==============================================================================
 
-autocmd BufEnter *.py let b:suppress_insert_mode_switching = 0
-autocmd BufEnter *.pyx let b:suppress_insert_mode_switching = 0
+augroup cyfolds_initialize_insert_mode_suppression
+    autocmd!
+    autocmd BufEnter *.py let b:suppress_insert_mode_switching = 0
+    autocmd BufEnter *.pyx let b:suppress_insert_mode_switching = 0
+augroup END
 
 "augroup unset_python_folding_in_insert_mode
 "    autocmd!
@@ -151,18 +146,14 @@ autocmd BufEnter *.pyx let b:suppress_insert_mode_switching = 0
 "    autocmd InsertLeave *.py if b:suppress_insert_mode_switching == 0 | setlocal foldmethod=expr | endif
 "augroup END
 
-augroup unset_python_folding_in_insert_mode
+augroup cyfolds_unset_folding_in_insert_mode
     autocmd!
     "autocmd InsertEnter *.py setlocal foldmethod=marker " Bad: opens all folds.
     autocmd InsertEnter *.py if b:suppress_insert_mode_switching == 0 | 
                 \ let b:oldfoldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
     autocmd InsertLeave *.py if b:suppress_insert_mode_switching == 0 |
                 \ let &l:foldmethod = b:oldfoldmethod  | endif
-augroup END
 
-augroup unset_cython_folding_in_insert_mode
-    autocmd!
-    "autocmd InsertEnter *.py setlocal foldmethod=marker " Bad: opens all folds.
     autocmd InsertEnter *.pyx if b:suppress_insert_mode_switching == 0 | 
                 \ let b:oldfoldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
     autocmd InsertLeave *.pyx if b:suppress_insert_mode_switching == 0 |
@@ -213,7 +204,7 @@ endfunction
 "foldclosed(line("."))
 "noremap <F1> :execute "normal! i" . ( line(".") + 1 )<cr>
 
-function CyfoldsToggleManualFolds()
+function! CyfoldsToggleManualFolds()
    " Toggle folding method between current one and manual.  Useful when
    " editing a lot and the slight delay on leaving insert mode becomes annoying.
    if &l:foldmethod != 'manual'

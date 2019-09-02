@@ -83,6 +83,10 @@ with open("egg") as f:
         z = 6
         w = 8
 
+        # should fold
+        #  should fold
+       # should not fold
+
 x = \
         list((5,))
 
