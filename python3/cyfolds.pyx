@@ -105,7 +105,7 @@ Possible enhancements
 
 # TODO:  Semicolons, do they make any difference?  Not in most cases, but...
 
-DEBUG: bint = False
+DEBUG: bint = True
 TESTING: bint = False
 USE_CACHING: bint = True
 EXPERIMENTAL: bint = False
@@ -278,7 +278,8 @@ cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], fold_indent_spaces
     """The fun/class defs define the new fold levels, but they're deferred for possible
     docstrings.  Also, levels are saved so things which
     dedent can return to that level (like after nested fun defs)."""
-    if DEBUG: print("   --> increasing foldlevel to {}".format(new_foldlevel))
+    if DEBUG:
+        print("   --> increasing foldlevel to {}".format(new_foldlevel))
 
     if new_foldlevel > foldlevel_stack[-1]:
         foldlevel_stack.append(new_foldlevel)
@@ -287,11 +288,15 @@ cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], fold_indent_spaces
 
 cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
                                          fold_indent_spaces_stack: List[cy.int],
-                                         foldlevel_stack: List[cy.int]):
+                                         foldlevel_stack: List[cy.int], docstring:bint=False):
     """Revert to previous foldlevel, according to how far the dedent went.  Return
     the new `prev_indent_spaces` and `prev_foldlevel`."""
-    while (len(fold_indent_spaces_stack) >= 1
-            and indent_spaces < fold_indent_spaces_stack[-1]):
+    if not docstring:
+        while (len(fold_indent_spaces_stack) >= 1
+                and indent_spaces < fold_indent_spaces_stack[-1]):
+            fold_indent_spaces_stack.pop()
+            foldlevel_stack.pop()
+    else:
         fold_indent_spaces_stack.pop()
         foldlevel_stack.pop()
     prev_indent_spaces = fold_indent_spaces_stack[-1]
@@ -301,19 +306,21 @@ cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
     return prev_indent_spaces, prev_foldlevel
 
 cdef cy.int get_foldlevel_increment(curr_foldlevel: cy.int, indent_spaces: cy.int,
-                                    shiftwidth: cy.int):
+                                    shiftwidth: cy.int, docstring:bint=False):
     """Return the increment in the shiftlevel.  Currently just returns 1 or maybe the
     shiftwidth, but later may take more parameters such as the recognized keyword."""
     increment: cy.int
     # Constant increment works, and always gives sequential increases regardless of indent.
     #increment = 1
 
-    # With this method the foldlevel always equals the indent spaces divided by shiftwidth,
-    # i.e., the number of indent levels.  But, it gives weird behavior on vim.  The
-    # number of za commands to open a fold seems to be increased when the level jumps...
-    # Same thing for zo.  May kill the idea of default open/closed by incrementing.
-    # But using 100zo gives the behavior I expect on open and is still fast.
-    increment = indent_spaces // shiftwidth - curr_foldlevel + 1
+    # This method gives foldlevels that always have value indent_spaces//shiftwidth.
+    #increment = indent_spaces // shiftwidth - curr_foldlevel + 1
+
+    # This method gives foldlevels that are identical to indent levels, except docstrings.
+    if not docstring:
+        increment = indent_spaces - curr_foldlevel + shiftwidth
+    else:
+        increment = indent_spaces - curr_foldlevel + 1
     assert increment >= 0
     return increment
 
@@ -370,6 +377,10 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     new_foldlevel_copy: cy.int = 0
     new_fold_indent_spaces: cy.int = 0
     new_fold_indent_spaces_copy: cy.int = 0
+
+    # Some counts for folding docstrings.
+    lines_since_begin_triple: cy.int = -1 # Lines since begins_with_triple_quote was True.
+    lines_since_end_triple: cy.int = -1 # Lines since ends_with_triple_quote was True.
 
     # Loop over the lines.
     line_num: cy.int = -1
@@ -531,30 +542,39 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                                                                     fold_indent_spaces_stack,
                                                                     foldlevel_stack)
 
+
         #
         # Begin setting the foldlevels for various cases.
         #
+
+
+        #
+        # Handle foldlevel for docstrings (which never have nested folds).
+        #
+
+        # NOTE: Apparently no easy way to have all docstrings stay open via foldlevel, since
+        # nested docstrings need to have a foldlevel that increases.  Best we can do, maybe,
+        # is have docstrings nested and then code under them nested further, under the docstring.
+        fold_docstrings: bint = False # TODO: testing
+        # These set the prev-foldlevel, since by default they will be come the new foldlevel.
+        if fold_docstrings and lines_since_begin_triple == 1 and lines_since_end_triple != 1:
+            curr_foldlevel: cy.int = foldlevel_stack[-1] # TODO: bundle these begin lines into increase_foldlevel
+            #foldlevel_increment: cy.int = get_foldlevel_increment(curr_foldlevel,
+            #                                     indent_spaces+1, shiftwidth, docstring=True)
+            new_foldlevel = curr_foldlevel + 1 # Assumes bumping others by more than one...
+            prev_foldlevel = increase_foldlevel(foldlevel_stack,
+                                           fold_indent_spaces_stack,
+                                           new_foldlevel, # Give docstrings huge foldlevel and indent level.
+                                           indent_spaces+1)
+        if fold_docstrings and lines_since_end_triple == 1:
+            prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
+                                                                    fold_indent_spaces_stack,
+                                                                    foldlevel_stack, docstring=True)
 
         foldlevel = prev_foldlevel # The fallback value.
 
         if is_empty:
             foldlevel = -5 # The -5 value is later be replaced by the succeeding foldlevel.
-
-        """
-        # Should this be done here or in states?  Note that in states it doesn't get module
-        # docstrings or ones just in the middle of code...  Note this has to be larger than
-        # the following code's indent for function docstring or they have the same level.
-        fold_docstrings: bint = True # TODO: testing
-        if fold_docstrings and begins_with_triple_quote:
-            foldlevel = increase_foldlevel(foldlevel_stack,
-                                           fold_indent_spaces_stack,
-                                           new_foldlevel_copy,
-                                           new_fold_indent_spaces_copy)
-        if fold_docstrings and prev_ends_with_triple_quote: # Need to define var!!!!!
-            prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
-                                                                    fold_indent_spaces_stack,
-                                                                    foldlevel_stack)
-        """
 
         if not is_empty or prev_line_has_a_continuation:
             # This part is the finite-state machine handling docstrings after fundef.
@@ -648,6 +668,11 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         prev_indent_spaces = (indent_spaces if not is_empty and not line_is_only_comment
                               else prev_indent_spaces)
         prev_line_has_a_continuation = line_has_a_contination
+
+        if begins_with_triple_quote: lines_since_begin_triple = 0
+        if ends_with_triple_quote: lines_since_end_triple = 0
+        if lines_since_begin_triple >= 0: lines_since_begin_triple += 1
+        if lines_since_end_triple >= 0: lines_since_end_triple += 1
 
     # Handle the case where foldlevel of previous line was set to -5; replace sequence with 0.
     if foldlevel_cache[line_num] == -5:

@@ -1,3 +1,8 @@
+"""
+
+Module docstring.
+
+"""
 
 def handle_options_on_cropped_file(
         input_doc_fname,
