@@ -171,14 +171,33 @@ augroup END
 " ==============================================================================
 " ==== Force a foldupdate.  ====================================================
 " ==============================================================================
+"
+function! DelayManualMethod() abort
+    let timer=timer_start(500, { timer -> execute('setlocal foldmethod=manual') })
+    "let timer=timer_start(100, { timer -> execute("let &l:foldmethod = b:update_saved_foldmethod") })
+endfunction
+
+"augroup cyfolds_set_manual_method
+"    autocmd!
+"    autocmd User *.py :call DelayManualMethod()
+"augroup END
 
 function! CyfoldsForceFoldUpdate()
     " Force a fold update.  Unlike zx and zX this does not change the
     " open/closed state of any of the folds.  Can be mapped to a key like 'x,'
-    " Could be used inside other commands, but has a little fun-call overhead.
-    let l:update_saved_foldmethod = &l:foldmethod
+    let b:update_saved_foldmethod = &l:foldmethod
     setlocal foldmethod=manual
-    setlocal foldmethod=expr
+    if b:update_saved_foldmethod != 'manual' " All methods except manual update folds.
+        let &l:foldmethod = b:update_saved_foldmethod
+    else
+       setlocal foldmethod=expr
+       " I had restore to manual mode with a delayed timer command in order
+       " for the change to expr method above to register with vim and invoke
+       " its side-effect of updating all the folds.  Just setting to manual
+       " here does not work.
+       "doautocmd <nomodeline> cyfolds_set_manual_method User
+       let timer=timer_start(500, { timer -> execute('setlocal foldmethod=manual') })
+    endif
 endfunction
 
 
