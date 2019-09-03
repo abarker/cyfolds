@@ -223,6 +223,8 @@ augroup cyfolds_remap_keys
     autocmd!
     autocmd BufEnter *.py nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
     autocmd BufEnter *.py nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+    autocmd BufEnter *.pyx nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+    autocmd BufEnter *.pyx nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
 augroup END
 
 " Redefine search, maybe open:

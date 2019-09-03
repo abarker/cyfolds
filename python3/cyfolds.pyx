@@ -103,8 +103,6 @@ Possible enhancements
 
 """
 
-# TODO:  Semicolons, do they make any difference?  Not in most cases, but...
-
 DEBUG: bint = False
 TESTING: bint = False
 USE_CACHING: bint = True
@@ -305,10 +303,11 @@ cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
         print("   <-- decreasing foldlevel to {}".format(prev_foldlevel))
     return prev_indent_spaces, prev_foldlevel
 
-cdef cy.int get_foldlevel_increment(curr_foldlevel: cy.int, indent_spaces: cy.int,
+cdef cy.int get_new_foldlevel(foldlevel_stack: List[cy.int], indent_spaces: cy.int,
                                     shiftwidth: cy.int, docstring:bint=False):
     """Return the increment in the shiftlevel.  Currently just returns 1 or maybe the
     shiftwidth, but later may take more parameters such as the recognized keyword."""
+    curr_foldlevel: cy.int = foldlevel_stack[-1]
     increment: cy.int
     # Constant increment works, and always gives sequential increases regardless of indent.
     #increment = 1
@@ -322,7 +321,7 @@ cdef cy.int get_foldlevel_increment(curr_foldlevel: cy.int, indent_spaces: cy.in
     else:
         increment = indent_spaces - curr_foldlevel + 1
     assert increment >= 0
-    return increment
+    return curr_foldlevel + increment
 
 cdef bint is_in_string(in_single_quote_string: bint, in_single_quote_docstring: bint,
                  in_double_quote_string: bint, in_double_quote_docstring: bint):
@@ -560,14 +559,12 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         fold_docstrings: bint = True # TODO: testing
         # These set the prev-foldlevel, since by default they will be come the new foldlevel.
         if fold_docstrings and lines_since_begin_triple == 1 and lines_since_end_triple != 1:
-            curr_foldlevel: cy.int = foldlevel_stack[-1] # TODO: bundle these begin lines into increase_foldlevel
-            foldlevel_increment: cy.int = get_foldlevel_increment(curr_foldlevel,
-                                                 indent_spaces+1, shiftwidth, docstring=True)
-            new_foldlevel = curr_foldlevel + foldlevel_increment + 1 # Assumes bumping others by more than one...
+            new_foldlevel = get_new_foldlevel(foldlevel_stack,
+                                              indent_spaces+1, shiftwidth, docstring=True)
             prev_foldlevel = increase_foldlevel(foldlevel_stack,
-                                           fold_indent_spaces_stack,
-                                           new_foldlevel, # Give docstrings huge foldlevel and indent level.
-                                           indent_spaces+1) # Extra space added, subtracted below.
+                                               fold_indent_spaces_stack,
+                                               new_foldlevel,
+                                               indent_spaces) # Extra space added, subtracted below.
         if fold_docstrings and lines_since_end_triple == 1:
             prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
                                                                     fold_indent_spaces_stack,
@@ -650,12 +647,9 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     just_after_fun_or_class_def = True
 
                 # New foldlevels, but application deferred until after possibly
-                # processing-off a # docstring following the function def.
-                curr_foldlevel: cy.int = foldlevel_stack[-1]
+                # processing-off a docstring following the function def.
                 new_fold_indent_spaces = indent_spaces + shiftwidth
-                foldlevel_increment: cy.int = get_foldlevel_increment(curr_foldlevel,
-                                                           indent_spaces, shiftwidth)
-                new_foldlevel = curr_foldlevel + foldlevel_increment
+                new_foldlevel = get_new_foldlevel(foldlevel_stack, indent_spaces, shiftwidth)
 
         # Save the calculated foldlevel value in the cache.
         foldlevel_cache[line_num] = foldlevel
