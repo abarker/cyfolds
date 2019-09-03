@@ -105,7 +105,7 @@ Possible enhancements
 
 # TODO:  Semicolons, do they make any difference?  Not in most cases, but...
 
-DEBUG: bint = True
+DEBUG: bint = False
 TESTING: bint = False
 USE_CACHING: bint = True
 EXPERIMENTAL: bint = False
@@ -552,24 +552,27 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         # Handle foldlevel for docstrings (which never have nested folds).
         #
 
+        """
         # NOTE: Apparently no easy way to have all docstrings stay open via foldlevel, since
         # nested docstrings need to have a foldlevel that increases.  Best we can do, maybe,
         # is have docstrings nested and then code under them nested further, under the docstring.
-        fold_docstrings: bint = False # TODO: testing
+        # Pretend that docstrings are indented by one space.
+        fold_docstrings: bint = True # TODO: testing
         # These set the prev-foldlevel, since by default they will be come the new foldlevel.
         if fold_docstrings and lines_since_begin_triple == 1 and lines_since_end_triple != 1:
             curr_foldlevel: cy.int = foldlevel_stack[-1] # TODO: bundle these begin lines into increase_foldlevel
-            #foldlevel_increment: cy.int = get_foldlevel_increment(curr_foldlevel,
-            #                                     indent_spaces+1, shiftwidth, docstring=True)
-            new_foldlevel = curr_foldlevel + 1 # Assumes bumping others by more than one...
+            foldlevel_increment: cy.int = get_foldlevel_increment(curr_foldlevel,
+                                                 indent_spaces+1, shiftwidth, docstring=True)
+            new_foldlevel = curr_foldlevel + foldlevel_increment + 1 # Assumes bumping others by more than one...
             prev_foldlevel = increase_foldlevel(foldlevel_stack,
                                            fold_indent_spaces_stack,
                                            new_foldlevel, # Give docstrings huge foldlevel and indent level.
-                                           indent_spaces+1)
+                                           indent_spaces+1) # Extra space added, subtracted below.
         if fold_docstrings and lines_since_end_triple == 1:
             prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
                                                                     fold_indent_spaces_stack,
                                                                     foldlevel_stack, docstring=True)
+        """
 
         foldlevel = prev_foldlevel # The fallback value.
 

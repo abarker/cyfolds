@@ -218,8 +218,12 @@ endfunction
 
 " Define z, to force a fold update without changing states of folds.
 " Note FastFolds defines a similar command to the zuz keys.
-nnoremap <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
-nnoremap <silent> z, :call CyfoldsToggleManualFolds()<CR>
+
+augroup cyfolds_remap_keys
+    autocmd!
+    autocmd BufEnter *.py nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+    autocmd BufEnter *.py nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+augroup END
 
 " Redefine search, maybe open:
 " https://stackoverflow.com/questions/54657330/how-to-override-redefine-vim-search-command
