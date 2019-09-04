@@ -56,7 +56,7 @@ def print_results_for_file(filename):
     test_data = test_data.splitlines()
 
     for i in range(1,len(test_data)+1):
-        flevel = get_foldlevel(i, 1, -1, 3, test_buffer=test_data)
+        flevel = get_foldlevel(i, 1, -1, 3, -1, -1, test_buffer=test_data)
         print("{:4}{:3}:".format(i-1, flevel), test_data[i-1])
 
 
@@ -66,7 +66,7 @@ def run_for_test_string():
 
     for i in range(1,15):
         print(lines[i-1], end="")
-        print("\t\t#", get_foldlevel(i, 1, -1, 3, test_buffer=lines))
+        print("\t\t#", get_foldlevel(i, 1, -1, 3, -1, -1, test_buffer=lines))
 
 
 if __name__ == "__main__":

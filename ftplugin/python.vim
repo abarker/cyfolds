@@ -22,8 +22,8 @@ else
     let vimhome = $HOME."/.vim"
 endif
 
-if !exists("g:hash_for_changes")
-    let g:hash_for_changes = 0
+if !exists("g:cyfolds_hash_for_changes")
+    let g:cyfolds_hash_for_changes = 0
 endif
 
 if !exists("g:cyfolds_fold_keywords")
@@ -34,6 +34,14 @@ if !exists("g:cyfolds_start_in_manual_method")
     let g:cyfolds_start_in_manual_method = 1
 endif
 
+if !exists("g:cyfolds_lines_of_module_docstrings")
+    let g:cyfolds_lines_of_module_docstrings = -1
+endif
+
+if !exists("g:cyfolds_lines_of_fun_and_class_docstrings")
+    let g:cyfolds_lines_of_fun_and_class_docstrings = -1
+endif
+
 "augroup cyfolds_set_up_fold_method_and_expressions
 "    autocmd!
 "    autocmd BufEnter *.py setlocal foldmethod=expr
@@ -42,8 +50,32 @@ endif
 "    autocmd BufEnter *.pyx setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
 "augroup END
 
-function! CyfoldsBufEnterInit()
-    " Initialize on entering a new buffer.
+" TODO: the BufEnter happens when just clicking between windows, annoying to
+" switch with delay.  May want to use BufAdd or BufNew event for at least
+" switching to expr mode and back.
+"function! CyfoldsBufEnterInit()
+"    " Initialize on entering a new buffer.
+"
+"    setlocal foldmethod=expr
+"    setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+"
+"    " Map the keys zuz and z, to their commands.
+"    nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+"    nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+"    noremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+"    nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+"
+"    " Initialize variables.
+"    let b:suppress_insert_mode_switching = 0
+"
+"    " Start with the chosen foldmethod.
+"    if g:cyfolds_start_in_manual_method == 1
+"        call DelayManualMethod()
+"    endif
+"endfunction
+
+function! CyfoldsBufNewInit()
+    " Initialize a new buffer.
 
     setlocal foldmethod=expr
     setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
@@ -64,16 +96,24 @@ function! CyfoldsBufEnterInit()
 endfunction
 
 
-augroup cyfolds_buf_enter_init
-    autocmd!
-    autocmd BufEnter *.py :call CyfoldsBufEnterInit()
-    autocmd BufEnter *.pyx :call CyfoldsBufEnterInit()
 
-    "autocmd BufEnter *.py nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
-    "autocmd BufEnter *.py nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
-    "autocmd BufEnter *.pyx nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
-    "autocmd BufEnter *.pyx nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+"augroup cyfolds_buf_enter_init
+"    autocmd!
+"    autocmd BufEnter *.py :call CyfoldsBufEnterInit()
+"    autocmd BufEnter *.pyx :call CyfoldsBufEnterInit()
+"
+"    "autocmd BufEnter *.py nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+"    "autocmd BufEnter *.py nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+"    "autocmd BufEnter *.pyx nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+"    "autocmd BufEnter *.pyx nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+"augroup END
+
+augroup cyfolds_buf_new_init
+    autocmd!
+    autocmd BufEnter *.py :call CyfoldsBufNewInit()
+    autocmd BufEnter *.pyx :call CyfoldsBufNewInit()
 augroup END
+
 
 python3 << ----------------------- PythonCode ----------------------------------
 """Python initialization code.  Import the function get_foldlevel."""
@@ -100,7 +140,6 @@ function! GetPythonFoldViaCython(lnum)
     " This fun is evaluated for each line and returns the folding level.
     " https://candidtim.github.io/vim/2017/08/11/write-vim-plugin-in-python.html
     " How to return Python values back to vim: https://stackoverflow.com/questions/17656320/
-    "echom "Entering GetPythonFoldViaCython..................................." . a:lnum
 
 python3 << ----------------------- PythonCode ----------------------------------
 """Python code that calls the Cython function get_foldlevel and returns the
@@ -112,21 +151,24 @@ lnum = int(vim.eval("a:lnum"))
 shiftwidth = int(vim.eval("&shiftwidth"))
 foldnestmax = int(vim.eval("&foldnestmax"))
 cur_buffer_num = int(vim.eval("bufnr('%')"))
-hash_for_changes = int(vim.eval("g:hash_for_changes"))
+lines_of_module_docstrings = int(vim.eval("g:cyfolds_lines_of_module_docstrings"))
+lines_of_fun_and_class_docstrings = int(vim.eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
+
+hash_for_changes = int(vim.eval("g:cyfolds_hash_for_changes"))
 if hash_for_changes:
     cur_undo_sequence = -1 # Used like None.
 else:
-     cur_undo_sequence = int(vim.eval("undotree().seq_cur"))
+    cur_undo_sequence = int(vim.eval("undotree().seq_cur"))
 
 # Call the Cython function to do the computation.
 computed_foldlevel = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
-                                   foldnestmax, shiftwidth)
+                                   foldnestmax, shiftwidth, lines_of_module_docstrings,
+                                   lines_of_fun_and_class_docstrings)
 
 # Set the return value as a global vim variable, to pass it back to vim.
 vim.command("let g:pyfoldlevel = {}".format(computed_foldlevel))
 ----------------------- PythonCode ----------------------------------
 
-    "echom "Returning foldlevel " . g:pyfoldlevel
     return g:pyfoldlevel
 
 endfunction
