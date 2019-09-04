@@ -16,14 +16,6 @@ let g:loaded_cyfolds = 1
 " ==== Initialization. =========================================================
 " ==============================================================================
 
-augroup cyfolds_set_up_fold_method_and_expressions
-    autocmd!
-    autocmd BufEnter *.py setlocal foldmethod=expr
-    autocmd BufEnter *.pyx setlocal foldmethod=expr
-    autocmd BufEnter *.py setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
-    autocmd BufEnter *.pyx setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
-augroup END
-
 if has('win32') || has ('win64')
     let vimhome = $VIM."/vimfiles"
 else
@@ -37,6 +29,51 @@ endif
 if !exists("g:cyfolds_fold_keywords")
     let g:cyfolds_fold_keywords = "class,def,async def"
 endif
+
+if !exists("g:cyfolds_start_in_manual_method")
+    let g:cyfolds_start_in_manual_method = 1
+endif
+
+"augroup cyfolds_set_up_fold_method_and_expressions
+"    autocmd!
+"    autocmd BufEnter *.py setlocal foldmethod=expr
+"    autocmd BufEnter *.pyx setlocal foldmethod=expr
+"    autocmd BufEnter *.py setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+"    autocmd BufEnter *.pyx setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+"augroup END
+
+function! CyfoldsBufEnterInit()
+    " Initialize on entering a new buffer.
+
+    setlocal foldmethod=expr
+    setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+
+    " Map the keys zuz and z, to their commands.
+    nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+    nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+    noremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+    nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+
+    " Initialize variables.
+    let b:suppress_insert_mode_switching = 0
+
+    " Start with the chosen foldmethod.
+    if g:cyfolds_start_in_manual_method == 1
+        call DelayManualMethod()
+    endif
+endfunction
+
+
+augroup cyfolds_buf_enter_init
+    autocmd!
+    autocmd BufEnter *.py :call CyfoldsBufEnterInit()
+    autocmd BufEnter *.pyx :call CyfoldsBufEnterInit()
+
+    "autocmd BufEnter *.py nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+    "autocmd BufEnter *.py nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+    "autocmd BufEnter *.pyx nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
+    "autocmd BufEnter *.pyx nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
+augroup END
 
 python3 << ----------------------- PythonCode ----------------------------------
 """Python initialization code.  Import the function get_foldlevel."""
@@ -53,17 +90,6 @@ sys.path.insert(0, python_root_dir)
 from cyfolds import get_foldlevel, delete_buffer_cache, setup_regex_pattern
 setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
-
-
-function! CyfoldsSetFoldKeywords(keyword_str)
-   " Dynamically assign the folding keywords to those on the string `keyword_str`.
-   let g:cyfolds_fold_keywords = a:keyword_str
-python3 << ----------------------- PythonCode ----------------------------------
-cyfolds_fold_keywords = vim.eval("a:keyword_str")
-setup_regex_pattern(cyfolds_fold_keywords)
------------------------ PythonCode ----------------------------------
-   call CyfoldsForceFoldUpdate()
-endfunction
 
 
 " ==============================================================================
@@ -126,11 +152,11 @@ augroup END
 " ==== Turn off fold updating in insert mode, and update after TextChanged.  ===
 " ==============================================================================
 
-augroup cyfolds_initialize_insert_mode_suppression
-    autocmd!
-    autocmd BufEnter *.py let b:suppress_insert_mode_switching = 0
-    autocmd BufEnter *.pyx let b:suppress_insert_mode_switching = 0
-augroup END
+"augroup cyfolds_initialize_insert_mode_suppression
+"    autocmd!
+"    autocmd BufEnter *.py let b:suppress_insert_mode_switching = 0
+"    autocmd BufEnter *.pyx let b:suppress_insert_mode_switching = 0
+"augroup END
 
 "augroup unset_python_folding_in_insert_mode
 "    autocmd!
@@ -169,7 +195,7 @@ augroup END
 
 
 " ==============================================================================
-" ==== Force a foldupdate.  ====================================================
+" ==== Define function to force a foldupdate.  =================================
 " ==============================================================================
 "
 function! DelayManualMethod() abort
@@ -202,6 +228,38 @@ endfunction
 
 
 " ==============================================================================
+" ==== Define some general functions. ==========================================
+" ==============================================================================
+
+"foldclosed(lnum)   " returns first line in range that is closed, else -1
+"foldclosed(line("."))
+"noremap <F1> :execute "normal! i" . ( line(".") + 1 )<cr>
+
+function! CyfoldsToggleManualFolds()
+    " Toggle folding method between current one and manual.  Useful when
+    " editing a lot and the slight delay on leaving insert mode becomes annoying.
+    if &l:foldmethod != 'manual'
+        setlocal foldmethod=manual
+    else
+        setlocal foldmethod=expr
+        call CyfoldsForceFoldUpdate()
+    endif
+    echom "foldmethod=" . &l:foldmethod
+endfunction
+
+
+function! CyfoldsSetFoldKeywords(keyword_str)
+   " Dynamically assign the folding keywords to those on the string `keyword_str`.
+   let g:cyfolds_fold_keywords = a:keyword_str
+python3 << ----------------------- PythonCode ----------------------------------
+cyfolds_fold_keywords = vim.eval("a:keyword_str")
+setup_regex_pattern(cyfolds_fold_keywords)
+----------------------- PythonCode ----------------------------------
+   call CyfoldsForceFoldUpdate()
+endfunction
+
+
+" ==============================================================================
 " ==== Modify foldline to look good with folded Python. ========================
 " ==============================================================================
 
@@ -215,36 +273,6 @@ function! CyfoldsFoldText()
 endfunction
 
 
-" ==============================================================================
-" ==== Remap some commands to more convenient forms.============================
-" ==============================================================================
-
-"foldclosed(lnum)   " returns first line in range that is closed, else -1
-"foldclosed(line("."))
-"noremap <F1> :execute "normal! i" . ( line(".") + 1 )<cr>
-
-function! CyfoldsToggleManualFolds()
-   " Toggle folding method between current one and manual.  Useful when
-   " editing a lot and the slight delay on leaving insert mode becomes annoying.
-   if &l:foldmethod != 'manual'
-      setlocal foldmethod=manual
-   else
-      setlocal foldmethod=expr
-      call CyfoldsForceFoldUpdate()
-   endif
-   echom "foldmethod=" . &l:foldmethod
-endfunction
-
-" Define z, to force a fold update without changing states of folds.
-" Note FastFolds defines a similar command to the zuz keys.
-
-augroup cyfolds_remap_keys
-    autocmd!
-    autocmd BufEnter *.py nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
-    autocmd BufEnter *.py nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
-    autocmd BufEnter *.pyx nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
-    autocmd BufEnter *.pyx nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
-augroup END
 
 " Redefine search, maybe open:
 " https://stackoverflow.com/questions/54657330/how-to-override-redefine-vim-search-command

@@ -1,7 +1,8 @@
-"""
-
-Module docstring.
-
+"""1)
+2)
+3) Module docstring.
+4)
+5)
 """
 
 def handle_options_on_cropped_file(
@@ -33,8 +34,13 @@ while var == value:
 
 def main_crop(
         ):
-    """Process command-line arguments, do the PDF processing, and then perform
-    final processing on the filenames."""
+    """1) Process command-line arguments, do the PDF processing, and then perform
+    2) final processing on the filenames.
+    3)
+    4) Longer docstring.
+    5)
+    6)
+    """
 
     parsed_args = parse_command_line_arguments(cmd_parser)
 
