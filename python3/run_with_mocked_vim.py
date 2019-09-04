@@ -51,13 +51,17 @@ def print_results_for_file(filename):
     print()
 
     with open(filename, "r") as f:
-        test_data = f.read()
+        test_code = f.read()
 
-    test_data = test_data.splitlines()
+    test_code = test_code.splitlines()
 
-    for i in range(1,len(test_data)+1):
-        flevel = get_foldlevel(i, 1, -1, 3, -1, -1, test_buffer=test_data)
-        print("{:4}{:3}:".format(i-1, flevel), test_data[i-1])
+    for lnum in range(1,len(test_code)+1):
+        flevel = get_foldlevel(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
+                               foldnestmax=20, shiftwidth=4,
+                               lines_of_module_docstrings=2,
+                               lines_of_fun_and_class_docstrings=-1,
+                               test_buffer=test_code)
+        print("{:4}{:3}:".format(lnum-1, flevel), test_code[lnum-1])
 
 
 def run_for_test_string():
@@ -66,7 +70,12 @@ def run_for_test_string():
 
     for i in range(1,15):
         print(lines[i-1], end="")
-        print("\t\t#", get_foldlevel(i, 1, -1, 3, -1, -1, test_buffer=lines))
+        flevel = get_foldlevel(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
+                               foldnestmax=20, shiftwidth=4,
+                               lines_of_module_docstrings=-1,
+                               lines_of_fun_and_class_docstrings=-1,
+                               test_buffer=lines)
+        print("\t\t#", flevel)
 
 
 if __name__ == "__main__":

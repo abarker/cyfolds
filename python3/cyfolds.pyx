@@ -8,8 +8,6 @@ Program to set vim folding levels for Python code.  Made to be syntax-based and
 fast.  Only classes and functions are folded, and docstrings are left unfolded
 on the same level as the definition line.
 
-Note that `setup_regex_pattern` must be called before `get_foldlevel`.
-
 Notes:
 ------
 
@@ -132,14 +130,14 @@ from cython import bint # C int coerced to bool.
 
 buffer_change_indicator_dict: Dict[cy.int, cy.int] = {} # Digested states, by buffer number.
 foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Cache of foldlevel values, by buffer num.
-config_var_settings: (cy.int, cy.int, cy.int, cy.int) = (-2, -2, -2, -2) # Cache also dirty if config vars change.
+config_var_settings: (cy.int, cy.int, cy.int, cy.int) = (-2, -2, -2, -2) # Dirty if config change.
 
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
-foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel (debugging)
+foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel (debugging).
 
 saved_buffer_lines_dict: Dict(cy.int, List(str)) = {} # Hashes indexed by buffer number.
 
-fold_keywords_matcher = None # Global set to compiled regex that matches keywords.
+fold_keywords_matcher = None # Global later set to a compiled regex that matches keywords.
 default_fold_keywords: str = "class,def,cdef,cpdef,async def"
 
 def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int, cur_undo_sequence:cy.int=-1,
@@ -159,9 +157,10 @@ def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int, cur_undo_sequence:cy.int
     # Be SURE that all int args passed to this function have been converted from strings.
     global recalcs, foldfun_calls # Debugging counts, persistent.
     global saved_buffer_lines_dict, config_var_settings
+    if fold_keywords_matcher is None:
+        setup_regex_pattern()
     new_config_var_settings: (cy.int, cy.int, cy.int, cy.int)
     new_config_var_settings = foldnestmax, shiftwidth, lines_of_module_docstrings, lines_of_fun_and_class_docstrings
-
 
     lnum -= 1 # Compensate for different numbering convention, vim vs. Python.
 
@@ -236,39 +235,49 @@ def delete_buffer_cache(buffer_num: cy.int):
     if buffer_num in foldlevel_cache:
         del foldlevel_cache[buffer_num]
 
-keyword_pattern_dict: Dict = {"else": "else:",
-                              "try": "try:",
-                              "finally": "finally:",
-                              "except": "except |except:",
-                             }
+keyword_pattern_dict: Dict[str,str] = {"else": "else:",
+                                       "try": "try:",
+                                       "finally": "finally:",
+                                       "except": "except |except:",
+                                      }
 
-def setup_regex_pattern(fold_keywords_string=default_fold_keywords):
+def setup_regex_pattern(fold_keywords_string: str=default_fold_keywords):
     """Set up the regex to match the keywords in the list `pat_list`.  The
     `pat_string` should be a comma-separated list of keywords."""
     global fold_keywords_matcher
 
-    keywords_list: List = fold_keywords_string.split(",")
+    keywords_list: List[str] = fold_keywords_string.split(",")
     keywords_list = [keyword_pattern_dict.get(k, k + " ") for k in keywords_list]
-    pattern_string = "|".join(keywords_list)
+    pattern_string: str = "|".join(keywords_list)
 
     fold_keywords_matcher = re.compile(r"(?P<keyword>{})".format(pattern_string))
 
 cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
-                                    in_string: cy.int, indent_spaces: cy.int,
-                                    also_for:bint=False, also_while:bint=False):
+                                    in_string: cy.int, indent_spaces: cy.int):
     """Boolean for whether fun or class def begins on the line."""
     if prev_nested or in_string:
         return False
-    # Passing a slice vs. setting the pos and endpos seems not to make much difference in
-    # the time.
+    ## This alternative seems to run at about the same speed as the regex.
+    ## Keyword list would need to be set up differently for it, though.
+    #use_startswith: bint = True
+    #if use_startswith:
+    #    keywords_list: List[str] = ["def ", "class "]
+    #    k: str
+    #    for k in keywords_list:
+    #        if line.startswith(k, indent_spaces):
+    #            return True
+    #            break
+    #    else:
+    #        return = False
+
     max_pat_len: cy.int = 8 # Largest keyword pattern ('finally:').
+    # Passing a slice vs. setting the pos and endpos seems to make no real difference in time.
     #matchobject = re.match(fold_keywords_matcher, line[indent_spaces:indent_spaces+max_pat_len])
     matchobject = fold_keywords_matcher.match(line, indent_spaces, indent_spaces+max_pat_len)
     if matchobject:
-        retval = matchobject.group("keyword")
+        return True
     else:
-        retval = ""
-    return retval
+        return False
 
 cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],
                                              start_line_num: cy.int, foldlevel_value: cy.int):
@@ -315,23 +324,23 @@ cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
 
 cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int], indent_spaces: cy.int,
                                         shiftwidth: cy.int, docstring:bint=False):
-    """Return the increment in the shiftlevel.  Currently just returns 1 or maybe the
-    shiftwidth, but later may take more parameters such as the recognized keyword."""
+    """Return the new foldlevel and the new shiftlevel."""
     curr_foldlevel: cy.int = foldlevel_stack[-1]
-    increment: cy.int
-    # Constant increment works, and always gives sequential increases regardless of indent.
-    #increment = 1
-
-    # This method gives foldlevels that always have value indent_spaces//shiftwidth.
-    #increment = indent_spaces // shiftwidth - curr_foldlevel + 1
+    new_foldlevel: cy.int
+    new_fold_indent_spaces: cy.int
 
     # This method gives foldlevels that are identical to indent levels, except docstrings.
-    if not docstring:
-        increment = indent_spaces - curr_foldlevel + shiftwidth
-    else:
-        increment = indent_spaces - curr_foldlevel + 1
-    assert increment >= 0
-    return curr_foldlevel + increment, indent_spaces + shiftwidth
+    new_foldlevel = indent_spaces // shiftwidth + 1 # Just add one to old one for sequential...
+    if docstring:
+        new_foldlevel += 1
+    new_fold_indent_spaces = indent_spaces + shiftwidth
+    #if not docstring:
+    #    increment = indent_spaces - curr_foldlevel + shiftwidth
+    #else:
+    #    increment = indent_spaces - curr_foldlevel + 1 # TODO divide indent_spaces by shiftwidth again
+    #if not docstring: assert increment >= 0
+    #return curr_foldlevel + increment, indent_spaces + shiftwidth
+    return new_foldlevel, new_fold_indent_spaces
 
 cdef bint is_in_string(in_single_quote_string: bint, in_single_quote_docstring: bint,
                  in_double_quote_string: bint, in_double_quote_docstring: bint):
@@ -347,9 +356,6 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                                shiftwidth: cy.int, lines_of_module_docstrings:cy.int,
                                lines_of_fun_and_class_docstrings: cy.int):
     """Do the actual calculations and return the foldlevel."""
-    #lines_of_fun_and_class_docstrings: cy.int = -1 # Can be zero or more, -1 to fold after all (default)
-    #lines_of_module_docstrings: cy.int = -1 # Can be zero or more, -1 to not fold (default)
-
     # States in the state machine.
     inside_fun_or_class_def: bint = False
     just_after_fun_or_class_def: bint = False
@@ -575,7 +581,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         # Begin setting the foldlevels for various cases.
         #
 
-        # Process module docstrings (and freestanding docstrings in general).
+        # Process beginning of module docstrings (and freestanding docstrings in general).
         # Sets the prev-foldlevel, since by default that will become the new foldlevel.
         if (lines_of_module_docstrings != -1 and lines_since_begin_triple == lines_of_module_docstrings
                 and lines_since_end_triple == -1 and not inside_fun_or_class_docstring
@@ -587,13 +593,15 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                                                 fold_indent_spaces_stack,
                                                 new_foldlevel,
                                                 new_fold_indent_spaces)
+
+        # Process the end of module docstrings.
         if processing_docstring_indent and lines_since_end_triple == 0: #ends_with_triple_quote:
             # To not keep closing """ above, use lines_since_end_triple == 1, not 0.
+            processing_docstring_indent = False
             _prev_indent_spaces: cy.int
             _prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
                                                                     fold_indent_spaces_stack,
                                                                     foldlevel_stack, docstring=True)
-            processing_docstring_indent = False
 
         if DEBUG:
             print("   processing_docstring_indent=", processing_docstring_indent, sep="")
@@ -605,7 +613,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
 
         if not is_empty or prev_line_has_a_continuation:
             # This part is the finite-state machine handling docstrings after fundef.
-            begin_fun_or_class_def = is_begin_fun_or_class_def(line, prev_nested,
+            begin_fun_or_class_def: bint = is_begin_fun_or_class_def(line, prev_nested,
                                                                in_string, indent_spaces)
             if DEBUG:
                 print("   begin_fun_or_class_def:", begin_fun_or_class_def)
@@ -706,7 +714,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         if lines_since_end_triple >= 0:
             lines_since_end_triple += 1
 
-    # Handle the case where foldlevel of previous line was set to -5; replace sequence with 0.
+    # Handle the case where foldlevel of last line was set to -5; replace sequence with 0.
     if foldlevel_cache[line_num] == -5:
         replace_preceding_minus_five_foldlevels(foldlevel_cache, line_num, 0)
 

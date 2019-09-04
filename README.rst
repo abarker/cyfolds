@@ -62,8 +62,11 @@ but only in Python).  In manual mode folds always need to be explicitly
 updated.  In expr mode folds can get messed up, for example, when deleting
 characters with ``x`` or lines with ``dd`` (those change events do not trigger
 Vim to update the folds).  The ``zuz`` command updates the folds, returning the
-folding mode to whatever mode it was in before the command.  This key sequence
-is mapped to the function call ``CyfoldsForceFoldUpdate()``.
+folding mode to whatever mode it was in before the command.  The states of the
+folds, open or closed, is unchanged except for folds changed by the updating
+(unlike the built-in ``zx`` and ``zX`` commands which reset the open/closed
+states of folds).  This key sequence is mapped to the function call
+``CyfoldsForceFoldUpdate()``.
 
 Use ``z,`` to toggle between manual mode and expr mode.  By default Cyfolds
 starts in manual mode.  In expr mode folds are automatically updated upon
