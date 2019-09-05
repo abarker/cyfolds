@@ -44,6 +44,19 @@ x = "xxx
 # BUT the vim/python buffer vim.current.buffer IS indexed from zero.
 # For that reason the prints of lines below do not match the get_foldlevel calls.
 
+def run_for_test_string():
+    print()
+    lines = test_string.splitlines()
+
+    for i in range(1,15):
+        print(lines[i-1], end="")
+        flevel = get_foldlevel(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
+                               foldnestmax=20, shiftwidth=4,
+                               lines_of_module_docstrings=-1,
+                               lines_of_fun_and_class_docstrings=-1,
+                               test_buffer=lines)
+        print("\t\t#", flevel)
+
 def print_results_for_file(filename):
     """Run the get_foldlevel calculator on the file and print the results."""
     print()
@@ -58,24 +71,36 @@ def print_results_for_file(filename):
     for lnum in range(1,len(test_code)+1):
         flevel = get_foldlevel(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
                                foldnestmax=20, shiftwidth=4,
-                               lines_of_module_docstrings=2,
+                               lines_of_module_docstrings=-1,
                                lines_of_fun_and_class_docstrings=-1,
                                test_buffer=test_code)
         print("{:4}{:3}:".format(lnum-1, flevel), test_code[lnum-1])
 
 
-def run_for_test_string():
-    print()
-    lines = test_string.splitlines()
+def get_fold_list(filename, writefile=""):
+    """Return the list of folds for the lines in the file `filename`."""
+    # TODO: create a params named tuple to pass in.
+    with open(filename, "r") as f:
+        test_code = f.read()
 
-    for i in range(1,15):
-        print(lines[i-1], end="")
-        flevel = get_foldlevel(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
-                               foldnestmax=20, shiftwidth=4,
+    test_code = test_code.splitlines()
+
+    fold_list = []
+    for lnum in range(1,len(test_code)+1):
+        flevel = get_foldlevel(lnum,
+                               cur_buffer_num=1,
+                               cur_undo_sequence=-1,
+                               foldnestmax=20,
+                               shiftwidth=4,
                                lines_of_module_docstrings=-1,
                                lines_of_fun_and_class_docstrings=-1,
-                               test_buffer=lines)
-        print("\t\t#", flevel)
+                               test_buffer=test_code)
+        fold_list.append(flevel)
+
+    if writefile:
+        with open(writefile, "w") as f:
+            f.writelines(str(fold) + "\n" for fold in fold_list)
+    return fold_list
 
 
 if __name__ == "__main__":
