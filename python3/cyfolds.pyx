@@ -128,21 +128,23 @@ from cpython cimport bool # Use Python bool.
 from cython import bint # C int coerced to bool.
 #from cpython cimport int # Use Python int.
 
-buffer_change_indicator_dict: Dict[cy.int, cy.int] = {} # Digested states, by buffer number.
-foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Cache of foldlevel values, by buffer num.
+buffer_change_indicator_dict: Dict[cy.int, cy.int] = {} # Digested states, by buffer num.
+foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Cached foldlevel values, by buffer num.
 config_var_settings: (cy.int, cy.int, cy.int, cy.int) = (-2, -2, -2, -2) # Dirty if config change.
 
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
-foldfun_calls: cy.int = 0 # Global counting the number of calls to get_foldlevel (debugging).
+foldfun_calls: cy.int = 0 # Global counting the num of calls to get_foldlevel (debugging).
 
 saved_buffer_lines_dict: Dict(cy.int, List(str)) = {} # Hashes indexed by buffer number.
 
 fold_keywords_matcher = None # Global later set to a compiled regex that matches keywords.
 default_fold_keywords: str = "class,def,cdef,cpdef,async def"
 
-def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int, cur_undo_sequence:cy.int=-1,
+def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
+                  cur_undo_sequence:cy.int=-1,
                   foldnestmax:cy.int=20, shiftwidth:cy.int=4,
-                  lines_of_module_docstrings:cy.int=-1, lines_of_fun_and_class_docstrings:cy.int=-1,
+                  lines_of_module_docstrings:cy.int=-1,
+                  lines_of_fun_and_class_docstrings:cy.int=-1,
                   test_buffer=None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is passed to vim, and expects `lnum` to be numbered from 1 rather than
@@ -280,7 +282,7 @@ cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
         return False
 
 cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],
-                                             start_line_num: cy.int, foldlevel_value: cy.int):
+                                  start_line_num: cy.int, foldlevel_value: cy.int):
     """Starting at index `start_line_num`, any immediately-preceding sequence of -5
     values is replaced by `foldlevel_value`."""
     if not foldlevel_cache:
@@ -291,7 +293,7 @@ cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],
         lnum_loopback -= 1
 
 cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], fold_indent_spaces_stack:
-                     List[cy.int], new_foldlevel: cy.int, new_fold_indent_spaces: cy.int):
+                  List[cy.int], new_foldlevel: cy.int, new_fold_indent_spaces: cy.int):
     """The fun/class defs define the new fold levels, but they're deferred for possible
     docstrings.  Also, levels are saved so things which
     dedent can return to that level (like after nested fun defs)."""
@@ -304,8 +306,8 @@ cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], fold_indent_spaces
     return new_foldlevel
 
 cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
-                                         fold_indent_spaces_stack: List[cy.int],
-                                         foldlevel_stack: List[cy.int], docstring:bint=False):
+                                 fold_indent_spaces_stack: List[cy.int],
+                                 foldlevel_stack: List[cy.int], docstring:bint=False):
     """Revert to previous foldlevel, according to how far the dedent went.  Return
     the new `prev_indent_spaces` and `prev_foldlevel`."""
     if not docstring:
@@ -322,8 +324,9 @@ cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
         print("   <-- decreasing foldlevel to {}".format(prev_foldlevel))
     return prev_indent_spaces, prev_foldlevel
 
-cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int], indent_spaces: cy.int,
-                                        shiftwidth: cy.int, docstring:bint=False):
+cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
+                                        indent_spaces: cy.int, shiftwidth: cy.int,
+                                        docstring:bint=False):
     """Return the new foldlevel and the new shiftlevel."""
     curr_foldlevel: cy.int = foldlevel_stack[-1]
     new_foldlevel: cy.int
@@ -682,7 +685,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             if inside_fun_or_class_def:
                 if not nested and not line_has_a_contination:
                     inside_fun_or_class_def = False
-                    just_after_fun_or_class_def = ends_with_colon
+                    just_after_fun_or_class_def = ends_with_colon # Stop if no colon.
 
             if begin_fun_or_class_def:
                 # Note: This state can be True at the same time as either
@@ -693,7 +696,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                 if nested or in_string or line_has_a_contination:
                     inside_fun_or_class_def = True
                 else:
-                    just_after_fun_or_class_def = True
+                    just_after_fun_or_class_def = ends_with_colon # Stop if no colon.
 
                 # New foldlevels, but application deferred until after possibly
                 # processing-off a docstring following the function def.

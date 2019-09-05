@@ -67,10 +67,8 @@ augroup cyfolds_buf_new_init
     " Using BufWinEnter, but BufEnter event seems to work, too; not sure which
     " is best or if it matters.  BufNew and BufAdd don't work.
     autocmd!
-    "autocmd BufEnter *.py :call CyfoldsBufEnterInit()
-    "autocmd BufEnter *.pyx :call CyfoldsBufEnterInit()
-    autocmd BufWinEnter *.py :call CyfoldsBufEnterInit()
-    autocmd BufWinEnter *.pyx :call CyfoldsBufEnterInit()
+    "autocmd BufEnter *.py,*.pyx,*.pxd :call CyfoldsBufEnterInit()
+    autocmd BufWinEnter *.py,*.pyx,*.pxd :call CyfoldsBufEnterInit()
 augroup END
 
 
@@ -144,8 +142,7 @@ endfunction
 " Call the delete function when the BufDelete event happens.
 augroup cyfolds_delete_buffer_cache
     autocmd!
-    autocmd BufDelete *.py call DeleteBufferCache(expand('<abuf>'))
-    autocmd BufDelete *.pyx call DeleteBufferCache(expand('<abuf>'))
+    autocmd BufDelete *.py,*.pyx,*.pxd call DeleteBufferCache(expand('<abuf>'))
 augroup END
 
 
@@ -155,15 +152,10 @@ augroup END
 
 augroup cyfolds_unset_folding_in_insert_mode
     autocmd!
-    "autocmd InsertEnter *.py setlocal foldmethod=marker " Bad: opens all folds.
-    autocmd InsertEnter *.py if b:suppress_insert_mode_switching == 0 | 
+    "autocmd InsertEnter *.py,*.pyx,*.pxd setlocal foldmethod=marker " Bad: opens all folds.
+    autocmd InsertEnter *.py,*.pyx,*.pxd if b:suppress_insert_mode_switching == 0 | 
                 \ let b:oldfoldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
-    autocmd InsertLeave *.py if b:suppress_insert_mode_switching == 0 |
-                \ let &l:foldmethod = b:oldfoldmethod  | endif
-
-    autocmd InsertEnter *.pyx if b:suppress_insert_mode_switching == 0 | 
-                \ let b:oldfoldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
-    autocmd InsertLeave *.pyx if b:suppress_insert_mode_switching == 0 |
+    autocmd InsertLeave *.py,*.pyx,*.pxd if b:suppress_insert_mode_switching == 0 |
                 \ let &l:foldmethod = b:oldfoldmethod  | endif
 augroup END
 
