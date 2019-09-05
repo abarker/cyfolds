@@ -222,6 +222,8 @@ endfunction
 
 set foldtext=CyfoldsFoldText()
 function! CyfoldsFoldText()
+    " TODO: Could this look back a line or two if the prev line is empty,
+    " without being too slow?
     let num_lines = v:foldend - v:foldstart + 1
     let line = getline(v:foldstart)
     let line_indent = indent(v:foldstart-1)

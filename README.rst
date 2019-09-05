@@ -132,7 +132,7 @@ which is slow.  It is also necessary for using the undotree to detect file
 changes, since the updates need to be made after leaving insert mode.  There is
 an option to switch to using a Python hash to detect changes, by setting::
 
-   g:cyfolds_hash_for_changes=1
+   let g:cyfolds_hash_for_changes = 1
 
 Suggested settings
 ~~~~~~~~~~~~~~~~~~
