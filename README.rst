@@ -40,9 +40,10 @@ Installation
 
       pip3 install cython setuptools --user --upgrade
 
-4. Now go to the cloned repo and into the ``python3`` directory.   Run the Bash script
-   ``compile`` located in that directory (if you cannot run Bash, you can run
-   ``python3 setup.py build_ext --inplace`` directly from the command line).
+4. Now go to the cloned repo and into the ``python3`` directory.   Run the Bash
+   script ``compile`` located in that directory (if you cannot run Bash, you
+   can run ``python3 setup.py build_ext --inplace`` directly from the command
+   line).
 
 The plugin is now ready to use in Vim.
 
@@ -134,10 +135,71 @@ an option to switch to using a Python hash to detect changes, by setting::
 
    let g:cyfolds_hash_for_changes = 1
 
-Suggested settings
-~~~~~~~~~~~~~~~~~~
+Sample settings
+~~~~~~~~~~~~~~~
 
-<copy from .vimrc when good, and colors from color file>
+These are ``.vimrc`` settings I'm currently using.
+
+Cyfolds sets the foldlevels of lines to the indent level divided by the
+shiftwidth.  So the first level of indent has foldlevel 0, the second has
+foldlevel 1, etc.  Setting the foldlevel to 0 folds everything by default.
+Setting ``foldlevel`` to 1, for example, will by default keep all the classes
+and function definitions at first indent level (0) open and close all the rest
+(such as the methods of the class).  The same holds for things line ``with``
+which are not being folded at all.  For consistency the things inside them are
+at a higher foldlevel, regardless.  
+
+The ``foldlevel`` is changed by commands like ``zr``, ``zR``, ``zm``, and
+``zM``.  The ``foldlevelstart`` setting is used to set the initial foldlevel
+when files are opened.
+
+.. code-block:: vim
+
+   " Cyfolds settings.
+   let g:cyfolds = 1 " Enable or disable loading the plugin.
+   "let g:cyfolds_fold_keywords = "class,def,async def,cclass,cdef,cpdef" " Cython.
+   let g:cyfolds_fold_keywords = "class,def,async def" " Python default.
+   let g:cyfolds_lines_of_module_docstrings = 20 " Lines to keep unfolded, -1 means keep all.
+   let g:cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
+   let g:cyfolds_start_in_manual_mode = 1 " Default is to start in manual mode.
+
+   " General folding settings.
+   set foldenable " Enable folding (and instantly close all folds below foldlevel).
+   "set nofoldenable " Disable folding and instantly open all folds.
+   set foldcolumn=0 " The width of the fold-info column on the left, default is 0
+   set foldlevelstart=-1 " The initial foldlevel; 0 closes all, 99 closes none, -1 default.
+   set foldminlines=0 " Minimum number of lines in a fold; don't fold small things.
+   "set foldmethod=manual " Set for other file types if desired; Cyfolds ignores it for Python.
+
+I also like to define a fold-toggling function that forces folds open or closed
+and bind it to the space bar:
+
+.. code-block:: vim
+
+   function! SuperFoldToggle(lnum)
+       " Force the fold under to cursor to immediately open or close.  Unlike za
+       " it only takes one application to open any fold.  Unlike zO it does not
+       " open recursively, it only opens the current fold.
+       if foldclosed('.') == -1
+          exe 'silent!norm! zc'
+       else 
+          exe 'silent!norm! 99zo'
+       endif
+   endfunction
+
+   " This sets the space bar to toggle folding and unfolding.
+   nnoremap <silent> <space> :call SuperFoldToggle(line("."))<CR>
+
+While generally not recommended, the setting below along with the expr method
+gives the ideal folding behavior.  It resets the folds after any changes to the
+text, such as from deleting and undoing.  Unfortunately it is too slow to use
+with, for example, repeated ``x`` commands to delete words and repeated ``u``
+commands for multiple undos.
+
+.. code-block:: vim
+
+   " Not recommended in general.
+   autocmd TextChanged *.py call CyfoldsForceFoldUpdate()
 
 Interaction with other plugins
 ------------------------------
@@ -151,16 +213,13 @@ invocations, can be used along with this plugin.
 FastFolds
 ~~~~~~~~~
 
-If you use the FastFolds plugin, consider turning it off for Python files when
-using Cyfolds.  This is because FastFolds remaps the folding keys to call
-update each time, which can cause a slight lag in the time to open and close a
-fold.  It also redefines ``zuz``, and its mechanism to switch off in insert
-mode might conflict with Cyfolds.  The full command for a ``.vimrc`` is::
+FastFolds does not seem to interfere with Cyfolds, but it does introduce a very
+slight delay when opening and closing folds.  That is because FastFolds remaps
+the folding/unfolding keys to update all folds each time.  Disabling FastFolds
+for Python files eliminates this delay (but also the automatic fold updating on
+fold commands).  The disabling command for a ``.vimrc`` is:
 
-   autocmd <silent> filetype python
-                          \ let g:fastfold_skip_filetypes=['python'] |
-                          \ nmap <SID>(DisableFastFoldUpdate) <Plug>(FastFoldUpdate) |
-                          \ let g:fastfold_savehook = 0
+.. code-block:: vim
 
-Note that this only applies to Python files.
+   let g:fastfold_skip_filetypes=['python'] |
 
