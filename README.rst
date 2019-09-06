@@ -25,6 +25,9 @@ raw
 .. raw:: html
    
    <img src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
+          style="margin-left: auto;
+                 margin-right: auto;
+                "
           width="300">
 
 Installation
