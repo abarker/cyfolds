@@ -37,7 +37,7 @@ Installation
    do this you need to have a C compiler installed.  On Ubuntu or Debian
    systems you can type:
 
-.. code-block:: bash
+   .. code-block:: bash
 
       sudo apt-get install build-essential
 
@@ -49,7 +49,7 @@ Installation
 3. After you have the compiler set up, the Python build requirements
    are Cython and setuptools.  This command will install them:
 
-.. code-block:: bash
+   .. code-block:: bash
 
       pip3 install cython setuptools --user --upgrade
 
@@ -97,30 +97,36 @@ call ``CyfoldsToggleManualFolds()``.
 Settings
 --------
 
+Keywords
+~~~~~~~~
+
 You can define which particular keywords are folded after by setting this
 configuration variable:
 
 .. code-block:: vim
 
-   let g:cyfolds_fold_keywords = "class,def,async def"
+   let g:cyfolds_fold_keywords = 'class,def,async def'
 
 The default values are shown.  For Cython, for example, you can set it to:
 
 .. code-block:: vim
 
-   let g:cyfolds_fold_keywords = "class,def,async def,cclass,cdef,cpdef"
+   let g:cyfolds_fold_keywords = 'class,def,async def,cclass,cdef,cpdef'
 
 Any keyword which starts a line and where the statement ends in a colon
 can be used.  The list of all of them in Python is:
 
 .. code-block:: vim
 
-   "class,def,async def,while,for,if,else,elif,with,try,except,finally"
+   'class,def,async def,while,for,if,else,elif,with,try,except,finally'
 
 If a docstring appears immediately after any such definition it will remain
 unfolded just under the opening statement.  This list can be reset dynamically
 by passing the new list to the function
 ``CyfoldsSetFoldKeywords(keyword_str)``.
+
+Number of lines unfolded
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The number of lines to keep unfolded in module docstrings (and other
 freestanding docstrings) can be set by a command such as:
@@ -142,6 +148,9 @@ The number of lines to keep unfolded in docstrings under keywords such as
 
 The default value of -1 keeps the full docstring unfolded while the
 function or class code just below it is folded.
+
+Other settings
+~~~~~~~~~~~~~~
 
 To fix syntax highlighting on all updates, from the start of the file,
 use this:
@@ -176,7 +185,7 @@ an option to switch to using a Python hash to detect changes, by setting:
    let g:cyfolds_hash_for_changes = 1
 
 Sample settings
-~~~~~~~~~~~~~~~
+---------------
 
 These are ``.vimrc`` settings I'm currently using.
 
