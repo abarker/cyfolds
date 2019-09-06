@@ -11,6 +11,18 @@ if exists('g:loaded_cyfolds') || &cp || g:cyfolds == 0
 endif
 let g:loaded_cyfolds = 1
 
+" What is the overhead of calling Python from vim?  The cached foldlevel
+" values could be stored in a vim list, which would eliminate the need to call
+" Python except to fill the list on dirty cache.  Would that make any
+" significant difference in speed?  Dirty cache detection would necessarily
+" need to be via undotree data.
+"
+" See vim.List in :h python-bindeval-objects
+" Maybe something like
+"    cyfolds_foldlevel_cache = vim.bindeval('g:cyfolds_foldlevel_cache')
+"
+" Downside is bindeval is only in newer vims, and apparently not
+" compatible with neovim: https://github.com/neovim/neovim/issues/1898
 
 " ==============================================================================
 " ==== Initialization. =========================================================
