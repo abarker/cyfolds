@@ -73,32 +73,39 @@ Turn on folding in Vim and plugins in general if you haven't already:
 New key mappings
 ----------------
 
-Use ``zuz`` to force the folds to be updated (same as the FastFolds mapping,
-but only in Python).  In manual mode folds always need to be explicitly
-updated.  In expr mode folds can get messed up, for example, when deleting
-characters with ``x`` or lines with ``dd`` (those change events do not trigger
-Vim to update the folds).  The ``zuz`` command updates the folds, returning the
-folding mode to whatever mode it was in before the command.  The states of the
-folds, open or closed, is unchanged except for folds changed by the updating
-(unlike the built-in ``zx`` and ``zX`` commands which reset the open/closed
-states of folds).  This key sequence is mapped to the function call
-``CyfoldsForceFoldUpdate()``.
+In addition to the usual Vim folding keys (see ``:help fold-commands`` in Vim),
+Cyfolds adds two new key bindings.
 
-Use ``z,`` to toggle between manual mode and expr mode.  By default Cyfolds
-starts in manual mode.  In expr mode folds are automatically updated upon
-leaving insert mode.  In manual mode there is no automatic fold updating;
-updating must be done explicitly with ``zuz``.  Manual mode is best for heavy,
-fast editing with a lot of switching in and out of insert mode.  (In expr mode
-heavy editing can be annoying due to the small delay in updating folds.)  Folds
-are updated automatically upon toggling.  The existing folds and their states are
-left unchanged except for updates.  This key sequence is mapped to the function
-call ``CyfoldsToggleManualFolds()``.
+Use the ``zuz`` key sequence to force the folds to be updated.  (This is the
+same as the FastFolds mapping, but only applies in Python code.)  With
+``foldmethod`` set to ``manual`` folds always need to be explicitly updated,
+either with ``zuz`` or one of the Vim commands.  When ``foldmethod`` is set to
+``expr`` folds can still get messed up and require updating, for example, when
+deleting characters with ``x`` or lines with ``dd`` (those change events do not
+trigger Vim to update the folds).  The ``zuz`` command updates the folds,
+returning the folding method to whatever method it was in before the command.  The
+states of the folds, open or closed, are unchanged except for folds changed by
+the updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
+which reset the open/closed states of folds.)  This key sequence is mapped to
+the function call ``CyfoldsForceFoldUpdate()``.
+
+Use the ``z,`` key sequence to toggle the ``foldmethod`` setting between
+``expr`` and ``manual``.  By default Cyfolds starts with manual method.  With
+expr method folds are automatically updated upon leaving insert mode.  With
+manual method there is no automatic fold updating; updating must be done
+explicitly, e.g. with ``zuz``.  Manual method is best for doing heavy, fast
+editing with a lot of switching in and out of insert mode.  (With expr method
+there can be as small but noticable delay in fast editing in and out of insert
+mode.) Folds automatically updated upon toggling with ``z,``.  The existing
+folds and their states are left unchanged except changes due to this update
+operation.  This key sequence is mapped to the function call
+``CyfoldsToggleManualFolds()``.
 
 Settings
 --------
 
-Keywords
-~~~~~~~~
+Keywords to fold under
+~~~~~~~~~~~~~~~~~~~~~~
 
 You can define which particular keywords are folded after by setting this
 configuration variable:
@@ -125,8 +132,8 @@ unfolded just under the opening statement.  This list can be reset dynamically
 by passing the new list to the function
 ``CyfoldsSetFoldKeywords(keyword_str)``.
 
-Number of lines unfolded
-~~~~~~~~~~~~~~~~~~~~~~~~
+Number of lines left unfolded
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The number of lines to keep unfolded in module docstrings (and other
 freestanding docstrings) can be set by a command such as:
@@ -161,8 +168,8 @@ use this:
 
 The default is not to fix highlighting on all updates.
 
-This command will change the default Cyfolds starting mode from manual mode to
-expr mode:
+This command will change the default of Cyfolds starting with ``foldmethod=manual`` to
+starting with ``foldmethod=expr``:
 
 .. code-block:: vim
 
@@ -177,8 +184,10 @@ To disable loading of the Cyfolds plugin use this in your ``.vimrc``:
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode Vim updates the folds on every character,
 which is slow.  It is also necessary for using the undotree to detect file
-changes, since the updates need to be made after leaving insert mode.  There is
-an option to switch to using a Python hash to detect changes, by setting:
+changes, since the updates need to be made after leaving insert mode.
+
+There is an option to switch the change-detection method to a Python hash of
+the buffer (though it is not recommended if the default method is working):
 
 .. code-block:: vim
 
