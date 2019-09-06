@@ -28,6 +28,8 @@ let g:loaded_cyfolds = 1
 " ==== Initialization. =========================================================
 " ==============================================================================
 
+let s:timer_wait = 500 " Timer wait in milliseconds, time before switch to manual.
+
 if has('win32') || has ('win64')
     let vimhome = $VIM."/vimfiles"
 else
@@ -53,6 +55,11 @@ endif
 if !exists("g:cyfolds_lines_of_fun_and_class_docstrings")
     let g:cyfolds_lines_of_fun_and_class_docstrings = -1
 endif
+
+if !exists("g:cyfolds_fix_syntax_highlighting_on_update")
+    let g:cyfolds_fix_syntax_highlighting_on_update = 0
+endif
+
 
 function! CyfoldsBufEnterInit()
     " Initialize upon entering a buffer.
@@ -102,7 +109,7 @@ setup_regex_pattern(cyfolds_fold_keywords)
 
 
 " ==============================================================================
-" ==== Define the function GetPythonFoldViaCython, set as foldexpr. ============
+" ==== Define the function GetPythonFoldViaCython to be set as foldexpr.========
 " ==============================================================================
 
 function! GetPythonFoldViaCython(lnum)
@@ -166,9 +173,11 @@ augroup cyfolds_unset_folding_in_insert_mode
     autocmd!
     "autocmd InsertEnter *.py,*.pyx,*.pxd setlocal foldmethod=marker " Bad: opens all folds.
     autocmd InsertEnter *.py,*.pyx,*.pxd if b:suppress_insert_mode_switching == 0 | 
-                \ let b:oldfoldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
+                \ let b:insert_saved_foldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
     autocmd InsertLeave *.py,*.pyx,*.pxd if b:suppress_insert_mode_switching == 0 |
-                \ let &l:foldmethod = b:oldfoldmethod  | endif
+                \ let &l:foldmethod = b:insert_saved_foldmethod  |
+                \ if g:cyfolds_fix_syntax_highlighting_on_update | call FixSyntaxHighlight() | endif |
+                \ endif
 augroup END
 
 
@@ -177,9 +186,17 @@ augroup END
 " ==============================================================================
 
 function! DelayManualMethod() abort
-    let timer=timer_start(500, { timer -> execute('setlocal foldmethod=manual') })
-    "let timer=timer_start(100, { timer -> execute("let &l:foldmethod = b:update_saved_foldmethod") })
+    let timer=timer_start(s:timer_wait, { timer -> execute('setlocal foldmethod=manual') })
+    "let timer=timer_start(s:timer_wait, { timer -> execute("let &l:foldmethod = b:update_saved_foldmethod") })
 endfunction
+
+function! FixSyntaxHighlight()
+    " Reset syntax highlighting from the start of the file.
+    if g:cyfolds_fix_syntax_highlighting_on_update && exists("g:syntax_on")
+        syntax sync fromstart
+    endif
+endfunction
+
 
 function! CyfoldsForceFoldUpdate()
     " Force a fold update.  Unlike zx and zX this does not change the
@@ -189,13 +206,16 @@ function! CyfoldsForceFoldUpdate()
     if b:update_saved_foldmethod != 'manual' " All methods except manual update folds.
         let &l:foldmethod = b:update_saved_foldmethod
     else
-       setlocal foldmethod=expr
-       " I had restore to manual mode with a delayed timer command in order
-       " for the change to expr method above to register with vim and invoke
-       " its side-effect of updating all the folds.  Just setting to manual
-       " here does not work.
-       "doautocmd <nomodeline> cyfolds_set_manual_method User
-       let timer=timer_start(500, { timer -> execute('setlocal foldmethod=manual') })
+        setlocal foldmethod=expr
+        " I had restore to manual mode with a delayed timer command in order
+        " for the change to expr method above to register with vim and invoke
+        " its side-effect of updating all the folds.  Just setting to manual
+        " here does not work.
+        "doautocmd <nomodeline> cyfolds_set_manual_method User
+        let timer=timer_start(s:timer_wait, { timer -> execute('setlocal foldmethod=manual') })
+    endif
+    if g:cyfolds_fix_syntax_highlighting_on_update
+        call FixSyntaxHighlight()
     endif
 endfunction
 
@@ -237,6 +257,7 @@ function! IsEmpty(line)
 endfunction
 
 set foldtext=CyfoldsFoldText()
+
 function! CyfoldsFoldText()
     let num_lines = v:foldend - v:foldstart + 1
     let foldstart = v:foldstart

@@ -118,6 +118,13 @@ The number of lines to keep unfolded in docstrings under keywords such as
 The default value of -1 keeps the full docstring unfolded while the
 function or class code just below it is folded.
 
+To fix syntax highlighting on all updates, from the start of the file,
+use this::
+
+   let g:cyfolds_fix_syntax_highlighting_on_update = 1
+
+The default is not to fix highlighting on all updates.
+
 This command will change the default Cyfolds starting mode from manual mode to
 expr mode::
 
@@ -162,6 +169,7 @@ when files are opened.
    let g:cyfolds_lines_of_module_docstrings = 20 " Lines to keep unfolded, -1 means keep all.
    let g:cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
    let g:cyfolds_start_in_manual_mode = 1 " Default is to start in manual mode.
+   let g:cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
 
    " General folding settings.
    set foldenable " Enable folding (and instantly close all folds below foldlevel).
