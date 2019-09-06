@@ -21,6 +21,8 @@ left unfolded under definitions with the ``def`` or ``class`` keywords.
 
 A screenshot of some example code with folding is shown here:
 
+..  Aligning images: https://gist.github.com/DavidWells/7d2e0e1bc78f4ac59a123ddf8b74932d
+
 .. raw:: html
  
    <p align="center">
@@ -113,13 +115,13 @@ configuration variable:
 
 .. code-block:: vim
 
-   let g:cyfolds_fold_keywords = 'class,def,async def'
+   let cyfolds_fold_keywords = 'class,def,async def'
 
 The default values are shown.  For Cython, for example, you can set it to:
 
 .. code-block:: vim
 
-   let g:cyfolds_fold_keywords = 'class,def,async def,cclass,cdef,cpdef'
+   let cyfolds_fold_keywords = 'class,def,async def,cclass,cdef,cpdef'
 
 Any keyword which starts a line and where the statement ends in a colon
 can be used.  The list of all of them in Python is:
@@ -141,7 +143,7 @@ freestanding docstrings) can be set by a command such as:
 
 .. code-block:: vim
 
-   let g:cyfolds_lines_of_module_docstrings = -1
+   let cyfolds_lines_of_module_docstrings = -1
 
 The default value -1 never folds module docstrings.  Nonnegative numbers
 keep that many lines open, not including the last line which is never
@@ -152,7 +154,7 @@ The number of lines to keep unfolded in docstrings under keywords such as
 
 .. code-block:: vim
 
-   let g:cyfolds_lines_of_fun_and_class_docstrings = -1
+   let cyfolds_lines_of_fun_and_class_docstrings = -1
 
 The default value of -1 keeps the full docstring unfolded while the
 function or class code just below it is folded.
@@ -165,7 +167,7 @@ use this:
 
 .. code-block:: vim
 
-   let g:cyfolds_fix_syntax_highlighting_on_update = 1
+   let cyfolds_fix_syntax_highlighting_on_update = 1
 
 The default is not to fix highlighting on all updates.
 
@@ -174,13 +176,13 @@ starting with ``foldmethod=expr``:
 
 .. code-block:: vim
 
-   let g:cyfolds_start_in_manual_mode = 0
+   let cyfolds_start_in_manual_mode = 0
 
 To disable loading of the Cyfolds plugin use this in your ``.vimrc``:
 
 .. code-block:: vim
 
-   let g:cyfolds = 0
+   let cyfolds = 0
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode Vim updates the folds on every character,
@@ -192,7 +194,7 @@ the buffer (though it is not recommended if the default method is working):
 
 .. code-block:: vim
 
-   let g:cyfolds_hash_for_changes = 1
+   let cyfolds_hash_for_changes = 1
 
 Sample settings
 ---------------
@@ -215,13 +217,13 @@ when files are opened.
 .. code-block:: vim
 
    " Cyfolds settings.
-   let g:cyfolds = 1 " Enable or disable loading the plugin.
-   "let g:cyfolds_fold_keywords = "class,def,async def,cclass,cdef,cpdef" " Cython.
-   let g:cyfolds_fold_keywords = "class,def,async def" " Python default.
-   let g:cyfolds_lines_of_module_docstrings = 20 " Lines to keep unfolded, -1 means keep all.
-   let g:cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
-   let g:cyfolds_start_in_manual_mode = 1 " Default is to start in manual mode.
-   let g:cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
+   let cyfolds = 1 " Enable or disable loading the plugin.
+   "let cyfolds_fold_keywords = "class,def,async def,cclass,cdef,cpdef" " Cython.
+   let cyfolds_fold_keywords = "class,def,async def" " Python default.
+   let cyfolds_lines_of_module_docstrings = 20 " Lines to keep unfolded, -1 means keep all.
+   let cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
+   let cyfolds_start_in_manual_mode = 1 " Default is to start in manual mode.
+   let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
 
    " General folding settings.
    set foldenable " Enable folding (and instantly close all folds below foldlevel).
@@ -283,5 +285,5 @@ disabling command for a ``.vimrc`` is:
 
 .. code-block:: vim
 
-   let g:fastfold_skip_filetypes=['python'] |
+   let fastfold_skip_filetypes=['python'] |
 

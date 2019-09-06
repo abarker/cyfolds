@@ -31,9 +31,9 @@ let g:loaded_cyfolds = 1
 let s:timer_wait = 500 " Timer wait in milliseconds, time before switch to manual.
 
 if has('win32') || has ('win64')
-    let vimhome = $VIM."/vimfiles"
+    let s:vimhome = $VIM."/vimfiles"
 else
-    let vimhome = $HOME."/.vim"
+    let s:vimhome = $HOME."/.vim"
 endif
 
 if !exists("g:cyfolds_hash_for_changes")
@@ -70,8 +70,6 @@ function! CyfoldsBufEnterInit()
     " Map the keys zuz and z, to their commands.
     nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
     nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
-    noremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
-    nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
 
     " Initialize variables.
     let b:suppress_insert_mode_switching = 0
@@ -98,7 +96,7 @@ from os.path import normpath, join
 import vim
 
 # Put vim python3 directory on sys.path so the plugin can be imported.
-vimhome = vim.eval("vimhome")
+vimhome = vim.eval("s:vimhome")
 cyfolds_fold_keywords = vim.eval("cyfolds_fold_keywords")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
@@ -256,7 +254,7 @@ function! IsEmpty(line)
     return line =~ '^\s*$'
 endfunction
 
-set foldtext=CyfoldsFoldText()
+setlocal foldtext=CyfoldsFoldText()
 
 function! CyfoldsFoldText()
     let num_lines = v:foldend - v:foldstart + 1
