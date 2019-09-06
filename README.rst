@@ -22,10 +22,10 @@ A screenshot of some example code with folding is shown here:
 
 .. raw:: html
  
-   <div style="text-align: center">
+   <p align="center">
    <img src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
-          width="300">
-   </div>
+          width="280">
+   </p>
 
 Installation
 ------------
