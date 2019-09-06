@@ -20,15 +20,12 @@ them so they are visible at the same time.
 
 A screenshot of some example code with folding is shown here:
 
-raw
-
 .. raw:: html
-   
+ 
+   <div style="text-align: center">
    <img src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
-          style="margin-left: auto;
-                 margin-right: auto;
-                "
           width="300">
+   </div>
 
 Installation
 ------------
