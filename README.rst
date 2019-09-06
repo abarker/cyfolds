@@ -4,19 +4,20 @@ Cyfolds
 =======
 
 Cyfolds is a Vim plugin to calculate syntax-aware folds for Python files.  When
-folding functions or classes it leaves the docstring unfolded for a better
-overview of the file.  The full file is parsed to find the syntax, so no
-heuristics are needed.  The plugin is written in Cython and is compiled to
-optimized C code for fast performance.
+folding the code of functions and classes it leaves the docstring unfolded
+along with the top definition line, for a better overview of the module.  The
+full file is parsed to find the syntax, so no heuristics are needed.  The
+plugin is written in Cython and is compiled to optimized C code for fast
+performance.
 
 All the folds are calculated in one pass over the file, and the values are
 cached.  The per-buffer cached values are returned if there have been no
 changes in the respective buffer since the last call.  See the Cython code file
 for more details of the algorithm.
 
-Folding can be customized to occur for various keywords.  By default docstrings
-are folded at the same level as the ``def``, ``class``, or other keyword above
-them so they are visible at the same time.
+Folding can be customized to occur for various keywords and to change the
+number of docstring lines to show.  By default all the text in docstrings is
+left unfolded under definitions with the ``def`` or ``class`` keywords.
 
 A screenshot of some example code with folding is shown here:
 
@@ -54,9 +55,9 @@ Installation
       pip3 install cython setuptools --user --upgrade
 
 4. Now go to the cloned repo and into the ``python3`` directory.   Run the Bash
-   script ``compile`` located in that directory (if you cannot run Bash, you
-   can run ``python3 setup.py build_ext --inplace`` directly from the command
-   line).
+   script ``compile`` located in that directory.  If you cannot run Bash
+   scripts, you can run ``python3 setup.py build_ext --inplace`` directly from
+   the command line.
 
 The plugin is now ready to use in Vim.
 
@@ -95,7 +96,7 @@ expr method folds are automatically updated upon leaving insert mode.  With
 manual method there is no automatic fold updating; updating must be done
 explicitly, e.g. with ``zuz``.  Manual method is best for doing heavy, fast
 editing with a lot of switching in and out of insert mode.  (With expr method
-there can be as small but noticable delay in fast editing in and out of insert
+there can be as small but noticeable delay in fast editing in and out of insert
 mode.) Folds automatically updated upon toggling with ``z,``.  The existing
 folds and their states are left unchanged except changes due to this update
 operation.  This key sequence is mapped to the function call
@@ -249,10 +250,11 @@ and bind it to the space bar:
    " This sets the space bar to toggle folding and unfolding.
    nnoremap <silent> <space> :call SuperFoldToggle(line("."))<CR>
 
-While generally not recommended, the setting below along with the expr method
-gives the ideal folding behavior.  It resets the folds after any changes to the
-text, such as from deleting and undoing.  Unfortunately it is too slow to use
-with, for example, repeated ``x`` commands to delete words and repeated ``u``
+While generally not recommended unless you have a very fast computer, Cyfolds
+with the setting below, along with the expr folding method, gives the ideal
+folding behavior.  It resets the folds after any changes to the text, such as
+from deleting and undoing.  Unfortunately it tends to be too slow to use with,
+for example, repeated ``x`` commands to delete words and repeated ``u``
 commands for multiple undos.
 
 .. code-block:: vim
@@ -272,11 +274,12 @@ invocations, can be used along with this plugin.
 FastFolds
 ~~~~~~~~~
 
-FastFolds does not seem to interfere with Cyfolds, but it does introduce a very
-slight delay when opening and closing folds.  That is because FastFolds remaps
-the folding/unfolding keys to update all folds each time.  Disabling FastFolds
-for Python files eliminates this delay (but also the automatic fold updating on
-fold commands).  The disabling command for a ``.vimrc`` is:
+FastFolds does not seem to interfere with Cyfolds and vice versa outside a
+Python buffer, but FastFolds does introduce a very slight delay when opening
+and closing folds.  That is because it remaps the folding/unfolding keys to
+update all folds each time.  Disabling FastFolds for Python files eliminates
+this delay (but also the automatic fold updating on those fold commands).  The
+disabling command for a ``.vimrc`` is:
 
 .. code-block:: vim
 
