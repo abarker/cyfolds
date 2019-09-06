@@ -18,6 +18,13 @@ Folding can be customized to occur for various keywords.  By default docstrings
 are folded at the same level as the ``def``, ``class``, or other keyword above
 them so they are visible at the same time.
 
+A screenshot of some example code with folding is shown here:
+
+.. image:: https://github.com/abarker/cyfolds/doc/screenshot_encabulator_reduced.png
+    :width: 400px
+    :align: center
+    :alt: [GIF of Cyfolds folding]
+
 Installation
 ------------
 
