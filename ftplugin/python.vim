@@ -117,7 +117,7 @@ function! GetPythonFoldViaCython(lnum)
 
 python3 << ----------------------- PythonCode ----------------------------------
 """Python code that calls the Cython function get_foldlevel and returns the
-foldlevel in the global variable pyfoldlevel."""
+foldlevel in the global variable cyfolds_pyfoldlevel."""
 
 # Set some Python variables from vim ones, to pass as args to get_foldlevel.
 # Make sure the arguments to get_foldlevel are all ints.
@@ -140,10 +140,10 @@ computed_foldlevel = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
                                    lines_of_fun_and_class_docstrings)
 
 # Set the return value as a global vim variable, to pass it back to vim.
-vim.command("let g:pyfoldlevel = {}".format(computed_foldlevel))
+vim.command("let g:cyfolds_pyfoldlevel = {}".format(computed_foldlevel))
 ----------------------- PythonCode ----------------------------------
 
-    return g:pyfoldlevel
+    return g:cyfolds_pyfoldlevel
 
 endfunction
 
