@@ -35,7 +35,9 @@ Installation
 
 2. The C code produced by Cython needs to be compiled before use.  In order to
    do this you need to have a C compiler installed.  On Ubuntu or Debian
-   systems you can type::
+   systems you can type:
+
+..code-block:: bash
 
       sudo apt-get install build-essential
 
@@ -45,7 +47,9 @@ Installation
    compiler: https://developer.apple.com/.
 
 3. After you have the compiler set up, the Python build requirements
-   are Cython and setuptools.  This command will install them::
+   are Cython and setuptools.  This command will install them:
+
+..code-block:: bash
 
       pip3 install cython setuptools --user --upgrade
 
@@ -59,7 +63,9 @@ The plugin is now ready to use in Vim.
 Configuration
 -------------
 
-Turn on folding in Vim and plugins in general if you haven't already::
+Turn on folding in Vim and plugins in general if you haven't already:
+
+..code-block:: vim
 
   set foldenable
   filetype plugin on
@@ -92,16 +98,22 @@ Settings
 --------
 
 You can define which particular keywords are folded after by setting this
-configuration variable::
+configuration variable:
+
+..code-block:: vim
 
    let g:cyfolds_fold_keywords = "class,def,async def"
 
-The default values are shown.  For Cython, for example, you can set it to::
+The default values are shown.  For Cython, for example, you can set it to:
+
+..code-block:: vim
 
    let g:cyfolds_fold_keywords = "class,def,async def,cclass,cdef,cpdef"
 
 Any keyword which starts a line and where the statement ends in a colon
-can be used.  The list of all of them in Python is::
+can be used.  The list of all of them in Python is:
+
+..code-block:: vim
 
    "class,def,async def,while,for,if,else,elif,with,try,except,finally"
 
@@ -111,7 +123,9 @@ by passing the new list to the function
 ``CyfoldsSetFoldKeywords(keyword_str)``.
 
 The number of lines to keep unfolded in module docstrings (and other
-freestanding docstrings) can be set by a command such as::
+freestanding docstrings) can be set by a command such as:
+
+..code-block:: vim
 
    let g:cyfolds_lines_of_module_docstrings = -1
 
@@ -120,7 +134,9 @@ keep that many lines open, not including the last line which is never
 folded.
 
 The number of lines to keep unfolded in docstrings under keywords such as
-``def`` and ``class`` can be set by a command such as::
+``def`` and ``class`` can be set by a command such as:
+
+..code-block:: vim
 
    let g:cyfolds_lines_of_fun_and_class_docstrings = -1
 
@@ -128,18 +144,24 @@ The default value of -1 keeps the full docstring unfolded while the
 function or class code just below it is folded.
 
 To fix syntax highlighting on all updates, from the start of the file,
-use this::
+use this:
+
+..code-block:: vim
 
    let g:cyfolds_fix_syntax_highlighting_on_update = 1
 
 The default is not to fix highlighting on all updates.
 
 This command will change the default Cyfolds starting mode from manual mode to
-expr mode::
+expr mode:
+
+..code-block:: vim
 
    let g:cyfolds_start_in_manual_mode = 0
 
-To disable loading of the Cyfolds plugin use this in your ``.vimrc``::
+To disable loading of the Cyfolds plugin use this in your ``.vimrc``:
+
+..code-block:: vim
 
    let g:cyfolds = 0
 
@@ -147,7 +169,9 @@ Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode Vim updates the folds on every character,
 which is slow.  It is also necessary for using the undotree to detect file
 changes, since the updates need to be made after leaving insert mode.  There is
-an option to switch to using a Python hash to detect changes, by setting::
+an option to switch to using a Python hash to detect changes, by setting:
+
+..code-block:: vim
 
    let g:cyfolds_hash_for_changes = 1
 
