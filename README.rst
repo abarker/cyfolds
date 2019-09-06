@@ -23,22 +23,12 @@ A screenshot of some example code with folding is shown here:
 raw
 
 .. raw:: html
-
+   
+   <center>
    <img src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
           width="400"
           height="400">
-
-   <embed type="image/png"
-          src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
-          width="400"
-          height="400">
-
-image
-
-.. image:: https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png
-    :width: 400px
-    :align: center
-    :alt: [Screenshot of Cyfolds folding]
+   </center>
 
 Installation
 ------------
