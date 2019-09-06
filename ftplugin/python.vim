@@ -220,14 +220,38 @@ endfunction
 " ==== Modify foldline to look good with folded Python. ========================
 " ==============================================================================
 
+function! IsEmpty(line)
+    return line =~ '^\s*$'
+endfunction
+
 set foldtext=CyfoldsFoldText()
 function! CyfoldsFoldText()
-    " TODO: Could this look back a line or two if the prev line is empty,
-    " without being too slow?
     let num_lines = v:foldend - v:foldstart + 1
-    let line = getline(v:foldstart)
-    let line_indent = indent(v:foldstart-1)
-    let sub = substitute(line, '/\*\|\*/\|{{{\d\=', '', 'g')
+    let foldstart = v:foldstart
+    let line_indent = indent(foldstart)
+
+    if foldstart > 0
+        let line_indent = max([line_indent, indent(foldstart-1)])
+    endif
+
+    " What if you use foldstart itself?, always match first line!!!  Mostly
+    " works, but blank lines after docstring cause problems, need to look
+    " forward another in that case...
+
+    " TODO: Could this look back a line or two if the prev line is empty,
+    " without being too slow?  Docstring whitespace at cutoff point causes
+    " ugly indents.  How about detect funs and classes w/o docstring
+    " and add indent?
+    "
+    "let line_with_indent = v:foldstart - 1
+    "while IsEmpty(line_with_indent) && line_with_indent >= 0
+    "   line_with_indent -= 1
+    "endwhile
+    "let line_indent = indent(line_with_indent)
+
+    "let line = getline(v:foldstart)
+    "let sub = substitute(line, '/\*\|\*/\|{{{\d\=', '', 'g')
+    "
     return repeat(' ', line_indent) . '+---- ' . num_lines . ' lines ' . v:folddashes
 endfunction
 
