@@ -20,10 +20,16 @@ them so they are visible at the same time.
 
 A screenshot of some example code with folding is shown here:
 
-.. image:: https://github.com/abarker/cyfolds/doc/screenshot_encabulator_reduced.png
+.. raw:: html
+
+   <embed type="image/png"
+          src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
+          height="400">
+
+.. image:: https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png
     :width: 400px
     :align: center
-    :alt: [GIF of Cyfolds folding]
+    :alt: [Screenshot of Cyfolds folding]
 
 Installation
 ------------
