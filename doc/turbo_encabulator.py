@@ -64,27 +64,6 @@ def pericosity_CGS_to_SI(pericosity):
     #
     #
 
-class ReteroEncabulator(TurboEncabulator):
-    """Adapt the Turboencabulator interface class `TurboEncabulator` to work
-    with the newer Retero-Encabulator instruments."""
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-
 class TurboEncabulator:
     """Interface to the Turboencabulator instrument."""
 
@@ -118,6 +97,27 @@ class TurboEncabulator:
         #
         #
         #
+
+class ReteroEncabulator(TurboEncabulator):
+    """Adapt the Turboencabulator interface class `TurboEncabulator` to work
+    with the newer Retero-Encabulator instruments."""
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #
 
 class EncabulatorError(Exception):
     pass
