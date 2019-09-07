@@ -196,10 +196,11 @@ def delete_buffer_cache(buffer_num: cy.int):
         del foldlevel_cache[buffer_num]
 
 
-keyword_pattern_dict: Dict[str,str] = {"else": "else:",
-                                       "try": "try:",
-                                       "finally": "finally:",
-                                       "except": "except |except:",
+keyword_pattern_dict: Dict[str,str] = {"else": r"else:",
+                                       "try": r"try:",
+                                       "finally": r"finally:",
+                                       "except": r"except |except:",
+                                       "async def": r"async[\s\t]+def"
                                       }
 
 def setup_regex_pattern(fold_keywords_string: str=default_fold_keywords):
@@ -232,11 +233,11 @@ cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
     #    else:
     #        return = False
 
-    max_pat_len: cy.int = 8 # Largest keyword pattern ('finally:').
+    #max_pat_len: cy.int = 9 # Largest keyword pattern ('async def: ').
     # Passing a slice vs. setting the pos and endpos seems to make no real time diff.
     #matchobject = re.match(fold_keywords_matcher, line[indent_spaces:indent_spaces+max_pat_len])
-    matchobject = fold_keywords_matcher.match(line, indent_spaces,
-                                                    indent_spaces+max_pat_len)
+    matchobject = fold_keywords_matcher.match(line, indent_spaces,)
+                                                    #indent_spaces+max_pat_len)
     return True if matchobject else False
 
 cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],

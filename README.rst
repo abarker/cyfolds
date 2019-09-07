@@ -244,7 +244,7 @@ These are the ``.vimrc`` settings I'm currently using:
 Sometimes opening visible folds with a higher fold level can take several
 applications of the ``zo`` or ``za`` command.  To force such folds to open or
 close immediately I define a fold-toggling function and bind it to the space
-bar key:
+bar key (you might alternately remap ``za``):
 
 .. code-block:: vim
 
@@ -253,10 +253,10 @@ bar key:
        " it only takes one application to open any fold.  Unlike zO it does not
        " open recursively, it only opens the current fold.
        if foldclosed('.') == -1
-           foldclose
+           silent! foldclose
        else 
            while foldclosed('.') != -1
-               foldopen
+               silent! foldopen
            endwhile
        endif
    endfunction
