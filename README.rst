@@ -200,8 +200,6 @@ the buffer (though it is not recommended if the default method is working):
 Sample settings
 ---------------
 
-These are ``.vimrc`` settings I'm currently using.
-
 In Vim folding the ``foldlevel`` setting determines which folds are open by
 default and which are closed.  Any folds with a level less than ``foldlevel``
 are open by default.  So when ``foldlevel`` equals 0 all folds are closed by
@@ -216,12 +214,13 @@ by the shiftwidth.  So the lines at the first level of indent always have
 foldlevel 0, foldable lines on the second level of indent have foldlevel 1,
 etc.  Setting ``foldlevel`` to 1, for example, will by default keep all folds
 for class and function definitions at the first indent level (0) open and close
-all the folds at higher indent levels (such as the methods of a zero-level
-class).  Setting ``foldlevel`` to 2 will by default keep foldable lines at the
-first and second level of indent unfolded by default, and so forth.  The same
-holds for indents due to keywords like, say, ``with`` which are not set to be
-folded.  For consistency the folds inside them are nevertheless at the higher
-foldlevel.  
+all the folds at higher indent levels (such as the methods of a 0-level class).
+Setting ``foldlevel`` to 2 will by default keep foldable lines at the first and
+second level of indent unfolded by default, and so forth.  The same holds true
+for indents due to keywords like, say, ``with`` which are not set to be folded.
+For consistency the folds inside them are nevertheless at the higher foldlevel.  
+
+These are the ``.vimrc`` settings I'm currently using.
 
 .. code-block:: vim
 
