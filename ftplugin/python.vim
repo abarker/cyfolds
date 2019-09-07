@@ -1,6 +1,11 @@
 " This file contains the vim code for Cyfolds.  It does some one-time
 " initialization and then defines the function which will be set as the
 " foldeval value to compute the foldlevels.
+"
+"==============================================================================
+" This file is part of the Cyfolds package, Copyright (c) 2019 Allen Barker.
+" License details (MIT) can be found in the file LICENSE.
+"==============================================================================
 
 if !exists('g:cyfolds')
    let g:cyfolds = 1

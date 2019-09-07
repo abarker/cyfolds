@@ -11,10 +11,15 @@ lines.  With no arguments it runs some simple builtin tests.
 For even more info, turn on the DEBUG flag in `cyfolds.pyx`, recompile, and
 then run this program.  More info will be printed as the program runs.
 
-"""
+Note that since the Vim module is mocked via an ordinary class the hashing
+method is used to test for dirty cache.  Only the Cython part of the code
+is tested by this program.
 
-# TODO: You currently need to switch to hash-computed dirty bit for cache, since
-# no changes object to pass in.
+"""
+#==============================================================================
+# This file is part of the Cyfolds package, Copyright (c) 2019 Allen Barker.
+# License details (MIT) can be found in the file LICENSE.
+#==============================================================================
 
 import cyfolds
 from cyfolds import get_foldlevel, setup_regex_pattern

@@ -6,6 +6,10 @@ Test data must be in files named with the name of the code file with the
 `.testdata` extension added.
 
 """
+#==============================================================================
+# This file is part of the Cyfolds package, Copyright (c) 2019 Allen Barker.
+# License details (MIT) can be found in the file LICENSE.
+#==============================================================================
 
 import glob, os
 from run_with_mocked_vim import get_fold_list

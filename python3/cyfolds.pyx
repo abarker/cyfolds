@@ -64,42 +64,11 @@ to compute the hash is less than the time to recompute the data up to the line
 needed.  Empirically, this does significantly speed up the processing,
 especially on startup.
 
-Possible enhancements
----------------------
-
-* If you set the foldlevel bump to a really high number for things like for,
-  while, and if then you should be able to syntactically define the initial state
-  of the folds, open or closed, by setting foldlevel.  See :help foldlevelstart.
-  Downside is that folds inside, say, a high-foldlevel "if" statement will also
-  be unfolded, even if they are def, class, etc.  Would work better for docstrings
-  if you could force an artificial dedent after it (since it doesn't nest).
-
-* Add a list type for high-foldlevel jump keywords::
-
-     let g:cyfolds_fold_keywords = ['def', 'async def', 'class', 'cdef']
-     let g"cyfolds_high_foldlevel_keywords = ['if', 'for', 'while']
-
-* Find a faster way to tell if the buffer changed, i.e., if the cache is dirty.
-  If you had the precise line numbers of all the changes you could speed up the
-  updates by jumping ahead (keep enough state data) and start there.  Keep going
-  forward past last change spot until the current foldlevel agrees with the
-  previous one for lines not changed.
-
-  You could just save a copy of the buffer.  Then go through and find the
-  changed lines.  Or save a hash of each line if it's too much memory to save
-  the whole thing.  Or maybe hash blocks of, say, 10 lines and take line
-  numbers mod that number.  But is this maybe slower than just computing the
-  folds over the whole file (which is pretty fast)?  You need to at least
-  search or hash over the whole file to tell what changed.  Updating is a pain
-  with blocks.
-
-* Maybe have an option to number indents sequentially instead of number of
-  spaces.  Might be more like what some people expect, maybe not.  Number by
-  indents (current way) seems more intuitive to me.
-
-* Set up a test suite, at least for the Python code part.
-
 """
+#==============================================================================
+# This file is part of the Cyfolds package, Copyright (c) 2019 Allen Barker.
+# License details (MIT) can be found in the file LICENSE.
+#==============================================================================
 
 DEBUG: bint = False
 TESTING: bint = False
