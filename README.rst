@@ -201,18 +201,24 @@ Sample settings
 
 These are ``.vimrc`` settings I'm currently using.
 
-Cyfolds sets the foldlevels of lines to the indent level divided by the
-shiftwidth.  So the first level of indent has foldlevel 0, the second has
-foldlevel 1, etc.  Setting the foldlevel to 0 folds everything by default.
-Setting ``foldlevel`` to 1, for example, will by default keep all the classes
-and function definitions at first indent level (0) open and close all the rest
-(such as the methods of the class).  The same holds for things line ``with``
-which are not being folded at all.  For consistency the things inside them are
-at a higher foldlevel, regardless.  
-
-The ``foldlevel`` is changed by commands like ``zr``, ``zR``, ``zm``, and
-``zM``.  The ``foldlevelstart`` setting is used to set the initial foldlevel
+In Vim folding the ``foldlevel`` setting determines which folds are open by
+default and which are closed.  Any folds with a level less than ``foldlevel``
+are open by default.  So when ``foldlevel`` equals 0 all folds are closed by
+default, and when it equals 99 all folds are open by default.  The
+``foldlevel`` value is increased by the Vim commands ``zr`` and ``zR`` (**r**
+\ educe folding), and decreased by the commands ``zm`` and ``zM`` (**m**\ ore
+folding).  The ``foldlevelstart`` setting is used to set the initial foldlevel
 when files are opened.
+
+Cyfolds always sets the foldlevels of folded lines to the indent level divided
+by the shiftwidth.  So the first level of indent has foldlevel 0, the second
+has foldlevel 1, etc.  So setting ``foldlevel`` to 1, for example, will by
+default keep all the classes and function definitions at first indent level (0)
+open and close all the rest (such as the methods of the class).  Setting it to
+2 will by default keep all folding of lines at the first and second level of
+indent open by default.  The same holds for indents due to keywords like, say,
+``with`` which are not being folded.  For consistency the folds inside them are
+nevertheless at the higher foldlevel.  
 
 .. code-block:: vim
 
@@ -227,7 +233,7 @@ when files are opened.
 
    " General folding settings.
    set foldenable " Enable folding (and instantly close all folds below foldlevel).
-   "set nofoldenable " Disable folding and instantly open all folds.
+   "set nofoldenable " Disable folding (and instantly open all folds).
    set foldcolumn=0 " The width of the fold-info column on the left, default is 0
    set foldlevelstart=-1 " The initial foldlevel; 0 closes all, 99 closes none, -1 default.
    set foldminlines=0 " Minimum number of lines in a fold; don't fold small things.
