@@ -97,11 +97,12 @@ Use the ``z,`` key sequence to toggle the ``foldmethod`` setting between
 expr method folds are automatically updated upon leaving insert mode.  With
 manual method there is no automatic fold updating; updating must be done
 explicitly, e.g. with ``zuz``.  Manual method is best for doing heavy, fast
-editing with a lot of switching in and out of insert mode.  (With expr method
-there can be as small but noticeable delay in fast editing in and out of insert
-mode.) Folds automatically updated upon toggling with ``z,``.  The existing
-folds and their states are left unchanged except changes due to this update
-operation.  This key sequence is mapped to the function call
+editing with a lot of switching in and out of insert mode.  (With the expr
+method there can be as small but noticeable delay in quickly moving in and out
+of insert mode, depending on the editing speed and the computer's speed.) Folds
+are automatically updated upon toggling with ``z,``.  The existing folds and
+their states are left unchanged except for changes due to the update operation
+itself.  This key sequence is mapped to the function call
 ``CyfoldsToggleManualFolds()``.
 
 Settings
@@ -211,14 +212,16 @@ folding).  The ``foldlevelstart`` setting is used to set the initial foldlevel
 when files are opened.
 
 Cyfolds always sets the foldlevels of folded lines to the indent level divided
-by the shiftwidth.  So the first level of indent has foldlevel 0, the second
-has foldlevel 1, etc.  So setting ``foldlevel`` to 1, for example, will by
-default keep all the classes and function definitions at first indent level (0)
-open and close all the rest (such as the methods of the class).  Setting it to
-2 will by default keep all folding of lines at the first and second level of
-indent open by default.  The same holds for indents due to keywords like, say,
-``with`` which are not being folded.  For consistency the folds inside them are
-nevertheless at the higher foldlevel.  
+by the shiftwidth.  So the lines at the first level of indent always have
+foldlevel 0, foldable lines on the second level of indent have foldlevel 1,
+etc.  Setting ``foldlevel`` to 1, for example, will by default keep all folds
+for class and function definitions at the first indent level (0) open and close
+all the folds at higher indent levels (such as the methods of a zero-level
+class).  Setting ``foldlevel`` to 2 will by default keep foldable lines at the
+first and second level of indent unfolded by default, and so forth.  The same
+holds for indents due to keywords like, say, ``with`` which are not set to be
+folded.  For consistency the folds inside them are nevertheless at the higher
+foldlevel.  
 
 .. code-block:: vim
 
