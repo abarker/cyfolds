@@ -241,24 +241,28 @@ These are the ``.vimrc`` settings I'm currently using.
    set foldminlines=0 " Minimum number of lines in a fold; don't fold small things.
    "set foldmethod=manual " Set for other file types if desired; Cyfolds ignores it for Python.
 
-I also like to define a fold-toggling function that forces folds open or closed
-and bind it to the space bar:
+Sometimes opening visible folds with a higher fold level can take several
+applications of the ``zo`` or ``za`` command.  To force such folds to open or
+closed immediately I define a fold-toggling function and bind it to the space
+bar key:
 
 .. code-block:: vim
 
-   function! SuperFoldToggle(lnum)
+   function! SuperFoldToggle()
        " Force the fold under to cursor to immediately open or close.  Unlike za
        " it only takes one application to open any fold.  Unlike zO it does not
        " open recursively, it only opens the current fold.
        if foldclosed('.') == -1
-          exe 'silent!norm! zc'
+           foldclose
        else 
-          exe 'silent!norm! 99zo'
+           while foldclosed('.') != -1
+               foldopen
+           endwhile
        endif
    endfunction
 
    " This sets the space bar to toggle folding and unfolding.
-   nnoremap <silent> <space> :call SuperFoldToggle(line("."))<CR>
+   nnoremap <silent> <space> :call SuperFoldToggle()<CR>
 
 While generally not recommended unless you have a very fast computer, Cyfolds
 with the setting below, along with the expr folding method, gives the ideal
