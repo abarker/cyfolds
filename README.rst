@@ -206,8 +206,8 @@ In Vim folding the ``foldlevel`` setting determines which folds are open by
 default and which are closed.  Any folds with a level less than ``foldlevel``
 are open by default.  So when ``foldlevel`` equals 0 all folds are closed by
 default, and when it equals 99 all folds are open by default.  The
-``foldlevel`` value is increased by the Vim commands ``zr`` and ``zR`` (**r**
-\ educe folding), and decreased by the commands ``zm`` and ``zM`` (**m**\ ore
+``foldlevel`` value is increased by the Vim commands ``zr`` and ``zR`` (
+**r**\ educe folding), and decreased by the commands ``zm`` and ``zM`` (**m**\ ore
 folding).  The ``foldlevelstart`` setting is used to set the initial foldlevel
 when files are opened.
 
