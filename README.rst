@@ -136,8 +136,8 @@ unfolded just under the opening statement.  This list can be reset dynamically
 by passing the new list to the function
 ``CyfoldsSetFoldKeywords(keyword_str)``.
 
-Number of lines left unfolded
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Number of docstring lines left unfolded
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The number of lines to keep unfolded in module docstrings (and other
 freestanding docstrings) can be set by a command such as:
@@ -163,39 +163,39 @@ function or class code just below it is folded.
 Other settings
 ~~~~~~~~~~~~~~
 
-To fix syntax highlighting on all updates, from the start of the file,
-use this:
+* To fix syntax highlighting on all updates, from the start of the file,
+  use this:
 
-.. code-block:: vim
+  .. code-block:: vim
 
-   let cyfolds_fix_syntax_highlighting_on_update = 1
+     let cyfolds_fix_syntax_highlighting_on_update = 1
 
-The default is not to fix highlighting on all updates.
+  The default is not to fix highlighting on all updates.
 
-This command will change the default of Cyfolds starting with ``foldmethod=manual`` to
-starting with ``foldmethod=expr``:
+* This command will change the default of Cyfolds starting with ``foldmethod=manual`` to
+  starting with ``foldmethod=expr``:
 
-.. code-block:: vim
+  .. code-block:: vim
 
-   let cyfolds_start_in_manual_mode = 0
+     let cyfolds_start_in_manual_mode = 0
 
-To disable loading of the Cyfolds plugin use this in your ``.vimrc``:
+* To disable loading of the Cyfolds plugin use this in your ``.vimrc``:
 
-.. code-block:: vim
+  .. code-block:: vim
 
-   let cyfolds = 0
+     let cyfolds = 0
 
-Cyfolds turns off folding in insert mode and restores it on leaving insert
-mode.  This is because in insert mode Vim updates the folds on every character,
-which is slow.  It is also necessary for using the undotree to detect file
-changes, since the updates need to be made after leaving insert mode.
+* Cyfolds turns off folding in insert mode and restores it on leaving insert
+  mode.  This is because in insert mode Vim updates the folds on every character,
+  which is slow.  It is also necessary for using the undotree to detect file
+  changes, since the updates need to be made after leaving insert mode.
 
-There is an option to switch the change-detection method to a Python hash of
-the buffer (though it is not recommended if the default method is working):
+  There is an option to switch the change-detection method to a Python hash of
+  the buffer (though it is not recommended if the default method is working):
 
-.. code-block:: vim
+  .. code-block:: vim
 
-   let cyfolds_hash_for_changes = 1
+     let cyfolds_hash_for_changes = 1
 
 Sample settings
 ---------------
