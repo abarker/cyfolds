@@ -200,7 +200,7 @@ keyword_pattern_dict: Dict[str,str] = {"else": r"else:",
                                        "try": r"try:",
                                        "finally": r"finally:",
                                        "except": r"except |except:",
-                                       "async def": r"async[\s\t]+def"
+                                       "async def": r"async[\s\t]+def[\s\t]+"
                                       }
 
 def setup_regex_pattern(fold_keywords_string: str=default_fold_keywords):
@@ -209,7 +209,7 @@ def setup_regex_pattern(fold_keywords_string: str=default_fold_keywords):
     global fold_keywords_matcher
 
     keywords_list: List[str] = fold_keywords_string.split(",")
-    keywords_list = [keyword_pattern_dict.get(k, k + " ") for k in keywords_list]
+    keywords_list = [keyword_pattern_dict.get(k, k + r"[\s\t]+") for k in keywords_list]
     pattern_string: str = "|".join(keywords_list)
 
     fold_keywords_matcher = re.compile(r"(?P<keyword>{})".format(pattern_string))
