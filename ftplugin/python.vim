@@ -1,4 +1,4 @@
-" This file contains the vim code for Cyfolds.  It does some one-time
+" This file contains the Vim code for Cyfolds.  It does some one-time
 " initialization and then defines the function which will be set as the
 " foldeval value to compute the foldlevels.
 "
@@ -16,8 +16,8 @@ if exists('g:loaded_cyfolds') || &cp || g:cyfolds == 0
 endif
 let g:loaded_cyfolds = 1
 
-" What is the overhead of calling Python from vim?  The cached foldlevel
-" values could be stored in a vim list, which would eliminate the need to call
+" What is the overhead of calling Python from Vim?  The cached foldlevel
+" values could be stored in a Vim list, which would eliminate the need to call
 " Python except to fill the list on dirty cache.  Would that make any
 " significant difference in speed?  Dirty cache detection would necessarily
 " need to be via undotree data.
@@ -26,7 +26,7 @@ let g:loaded_cyfolds = 1
 " Maybe something like
 "    cyfolds_foldlevel_cache = vim.bindeval('g:cyfolds_foldlevel_cache')
 "
-" Downside is bindeval is only in newer vims, and apparently not
+" Downside is bindeval is only in newer Vims, and apparently not
 " compatible with neovim: https://github.com/neovim/neovim/issues/1898
 
 " ==============================================================================
@@ -71,6 +71,7 @@ function! CyfoldsBufEnterInit()
 
     setlocal foldmethod=expr
     setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
+    setlocal foldtext=CyfoldsFoldText()
 
     " Map the keys zuz and z, to their commands.
     nnoremap <buffer> <silent> zuz :call CyfoldsForceFoldUpdate()<CR>
@@ -258,8 +259,6 @@ endfunction
 function! IsEmpty(line)
     return line =~ '^\s*$'
 endfunction
-
-setlocal foldtext=CyfoldsFoldText()
 
 function! CyfoldsFoldText()
     let num_lines = v:foldend - v:foldstart + 1
