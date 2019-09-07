@@ -111,7 +111,7 @@ Settings
 Keywords to fold under
 ~~~~~~~~~~~~~~~~~~~~~~
 
-You can define which particular keywords are folded after by setting this
+You can define which particular keywords have folds after them by setting this
 configuration variable:
 
 .. code-block:: vim
