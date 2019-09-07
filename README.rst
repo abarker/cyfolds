@@ -244,7 +244,7 @@ These are the ``.vimrc`` settings I'm currently using:
 Sometimes opening visible folds with a higher fold level can take several
 applications of the ``zo`` or ``za`` command.  To force such folds to open or
 close immediately I define a fold-toggling function and bind it to the space
-bar key (you might alternately remap ``za``):
+bar key (alternately, ``za`` could be remapped):
 
 .. code-block:: vim
 
