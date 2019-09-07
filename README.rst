@@ -297,5 +297,5 @@ disabling command for a ``.vimrc`` is:
 
 .. code-block:: vim
 
-   let fastfold_skip_filetypes=['python'] |
+   let fastfold_skip_filetypes=['python']
 
