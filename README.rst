@@ -220,7 +220,7 @@ second level of indent unfolded by default, and so forth.  The same holds true
 for indents due to keywords like, say, ``with`` which are not set to be folded.
 For consistency the folds inside them are nevertheless at the higher foldlevel.  
 
-These are the ``.vimrc`` settings I'm currently using.
+These are the ``.vimrc`` settings I'm currently using:
 
 .. code-block:: vim
 
@@ -243,7 +243,7 @@ These are the ``.vimrc`` settings I'm currently using.
 
 Sometimes opening visible folds with a higher fold level can take several
 applications of the ``zo`` or ``za`` command.  To force such folds to open or
-closed immediately I define a fold-toggling function and bind it to the space
+close immediately I define a fold-toggling function and bind it to the space
 bar key:
 
 .. code-block:: vim
