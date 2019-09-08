@@ -210,7 +210,8 @@ folding).  The ``foldlevelstart`` setting is used to set the initial foldlevel
 when files are opened.
 
 Cyfolds always sets the foldlevels of folded lines to the indent level divided
-by the shiftwidth.  So the lines at the first level of indent always have
+by the shiftwidth (except for freestanding docstrings, where folds have one
+added to that value).  So the lines at the first level of indent always have
 foldlevel 0, foldable lines on the second level of indent have foldlevel 1,
 etc.  Setting ``foldlevel`` to 1, for example, will by default keep all folds
 for class and function definitions at the first indent level (0) open and close
