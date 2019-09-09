@@ -42,7 +42,7 @@ Installation
 
    .. code-block:: bash
 
-      sudo apt-get install build-essential
+      sudo apt-get install build-essential python3-dev
 
    On Windows the free MinGW compiler is one option.  To install it, see
    https://cython.readthedocs.io/en/latest/src/tutorial/appendix.html.

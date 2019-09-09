@@ -189,9 +189,14 @@ augroup END
 " ==== Define function to force a foldupdate.  =================================
 " ==============================================================================
 
-function! DelayManualMethod() abort
-    let timer=timer_start(s:timer_wait, { timer -> execute('setlocal foldmethod=manual') })
+function! SetManual(timer)
+    set foldmethod=manual
     "let timer=timer_start(s:timer_wait, { timer -> execute("let &l:foldmethod = b:update_saved_foldmethod") })
+    "let timer=timer_start(s:timer_wait, { timer -> execute("set foldmethod=manual") })
+endfunction
+
+function! DelayManualMethod() abort
+    let timer = timer_start(s:timer_wait, 'SetManual')
 endfunction
 
 function! FixSyntaxHighlight()
@@ -216,7 +221,7 @@ function! CyfoldsForceFoldUpdate()
         " its side-effect of updating all the folds.  Just setting to manual
         " here does not work.
         "doautocmd <nomodeline> cyfolds_set_manual_method User
-        let timer=timer_start(s:timer_wait, { timer -> execute('setlocal foldmethod=manual') })
+        let timer = timer_start(s:timer_wait, 'SetManual')
     endif
     if g:cyfolds_fix_syntax_highlighting_on_update
         call FixSyntaxHighlight()
