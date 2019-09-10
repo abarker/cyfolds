@@ -4,20 +4,10 @@ Cyfolds
 =======
 
 Cyfolds is a Vim plugin to calculate syntax-aware folds for Python files.  When
-folding the code of functions and classes it leaves the docstring unfolded
-along with the top definition line, for a better overview of the module.  The
-full file is parsed to find the syntax, so no heuristics are needed.  The
-plugin is written in Cython and is compiled to optimized C code for fast
-performance.
-
-All the folds are calculated in one pass over the file, and the values are
-cached.  The per-buffer cached values are returned if there have been no
-changes in the respective buffer since the last call.  See the Cython code file
-for more details of the algorithm.
-
-Folding can be customized to occur for various keywords and to change the
-number of docstring lines to show.  By default all the text in docstrings is
-left unfolded under definitions with the ``def`` or ``class`` keywords.
+folding the code of functions and classes it can leave their docstrings
+unfolded along with the top definition line, for a better overview.  The full
+file is parsed to find the syntax, so no heuristics are needed.  The plugin is
+written in Cython and compiles to optimized C code for fast performance.
 
 A screenshot of some example code with folding is shown here:
 
@@ -29,6 +19,15 @@ A screenshot of some example code with folding is shown here:
    <img src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
           width="280">
    </p>
+
+Folding can be customized to occur for various keywords and to change the
+number of docstring lines to show.  By default all the text in docstrings is
+left unfolded under definitions with the ``def`` or ``class`` keywords.
+
+All the folds are calculated in one pass over the file, and the values are
+cached.  The per-buffer cached values are returned if there have been no
+changes in the respective buffer since the last call.  See the Cython code file
+for more details of the algorithm.
 
 Installation
 ------------
