@@ -66,7 +66,7 @@ The plugin is now ready to use in Vim.
 Configuration
 -------------
 
-Turn on folding in Vim and plugins in general if you haven't already:
+Turn on folding in Vim, and plugins in general if you haven't already:
 
 .. code-block:: vim
 
@@ -79,31 +79,39 @@ New key mappings
 In addition to the usual Vim folding keys (see ``:help fold-commands`` in Vim),
 Cyfolds adds two new key bindings.
 
-Use the ``zuz`` key sequence to force the folds to be updated.  (This is the
-same as the FastFolds mapping, but only applies in Python code.)  With
-``foldmethod`` set to ``manual`` folds always need to be explicitly updated,
-either with ``zuz`` or one of the Vim commands.  When ``foldmethod`` is set to
-``expr`` folds can still get messed up and require updating, for example, when
-deleting characters with ``x`` or lines with ``dd`` (those change events do not
-trigger Vim to update the folds).  The ``zuz`` command updates the folds,
-returning the folding method to whatever method it was in before the command.  The
-states of the folds, open or closed, are unchanged except for folds changed by
-the updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
-which reset the open/closed states of folds.)  This key sequence is mapped to
-the function call ``CyfoldsForceFoldUpdate()``.
+* The ``zuz`` key sequence is used to force the folds to be updated.  (This is
+  the same as the FastFolds mapping, but only applies in Python code.)  With
+  ``foldmethod`` set to ``manual`` folds always need to be explicitly updated,
+  either with ``zuz`` or one of the Vim commands.  When ``foldmethod`` is set
+  to ``expr`` folds are updated after inserts but can still get messed up and
+  require updating (for example, when deleting characters with ``x`` or lines
+  with ``dd``, since those change events do not trigger Vim to update the
+  folds).
+  
+  The ``zuz`` command updates all the folds, returning the folding method to
+  whatever method it was set to before the command.  The states of the folds,
+  open or closed, are unchanged except for folds created or removed by the
+  updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
+  which reset the open/closed states of folds.)
+  
+  This key sequence is mapped to the function call
+  ``CyfoldsForceFoldUpdate()``.
 
-Use the ``z,`` key sequence to toggle the ``foldmethod`` setting between
-``expr`` and ``manual``.  By default Cyfolds starts with manual method.  With
-expr method folds are automatically updated upon leaving insert mode.  With
-manual method there is no automatic fold updating; updating must be done
-explicitly, e.g. with ``zuz``.  Manual method is best for doing heavy, fast
-editing with a lot of switching in and out of insert mode.  (With the expr
-method there can be as small but noticeable delay in quickly moving in and out
-of insert mode, depending on the editing speed and the computer's speed.) Folds
-are automatically updated upon toggling with ``z,``.  The existing folds and
-their states are left unchanged except for changes due to the update operation
-itself.  This key sequence is mapped to the function call
-``CyfoldsToggleManualFolds()``.
+* The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
+  and ``manual``.  By default Cyfolds starts with the foldmethod set to manual.
+  With expr method folds are automatically updated upon leaving insert mode.
+  With manual method there is no automatic fold updating; updating must be done
+  explicitly, e.g.  with ``zuz``.  Folds are automatically updated upon
+  toggling with ``z,``.  The existing folds and their states are left unchanged
+  except for changes due to the update operation itself.
+  
+  The manual foldmethod is best for doing heavy, fast editing with a lot of
+  switching in and out of insert mode.  With the expr method there can be a
+  small but noticeable delay in quickly moving in and out of insert mode,
+  depending on the editing speed and the computer's speed.
+  
+  This key sequence is mapped to the function call
+  ``CyfoldsToggleManualFolds()``.
 
 Settings
 --------
