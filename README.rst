@@ -246,8 +246,8 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
 
    " General folding settings.
-   set foldenable " Enable folding (and instantly close all folds below foldlevel).
-   "set nofoldenable " Disable folding (and instantly open all folds).
+   set foldenable " Enable folding.
+   "set nofoldenable " Disable folding.
    set foldcolumn=0 " The width of the fold-info column on the left, default is 0
    set foldlevelstart=-1 " The initial foldlevel; 0 closes all, 99 closes none, -1 default.
    set foldminlines=0 " Minimum number of lines in a fold; don't fold small things.
@@ -261,9 +261,9 @@ bar key (alternately, ``za`` could be remapped):
 .. code-block:: vim
 
    function! SuperFoldToggle()
-       " Force the fold under to cursor to immediately open or close.  Unlike za
-       " it only takes one application to open any fold.  Unlike zO it does not
-       " open recursively, it only opens the current fold.
+       " Force the fold on the current line to immediately open or close.  Unlike za
+       " and zo it only takes one application to open any fold.  Unlike zO it does
+       " not open recursively, it only opens the current fold.
        if foldclosed('.') == -1
            silent! foldclose
        else 
@@ -288,12 +288,12 @@ repeated ``u`` commands for multiple undos.
    " Not recommended in general.
    autocmd TextChanged *.py call CyfoldsForceFoldUpdate()
 
-Finally, many Vim color themes have poor settings for the foldline (the visible
+Finally, some Vim color themes have poor settings for the foldline (the visible
 line that appears for closed folds) and the foldcolumn (the optional left-side
 gutter that appears when ``foldcolumn`` is set greater than the default value
-of 0).  The colors can tend to be glaring and distracting, while I prefer that
-the background of the foldline match the normal background.  These are are the
-two Vim highlighting settings for folds.  Set your own colors, obviously:
+of 0).  The colors can sometimes be glaring and distracting.  I prefer the
+background of the foldline to match the normal background.  These are are the
+two Vim highlighting settings for folds.  Use your own colors, obviously:
 
 .. code-block:: vim
 
@@ -302,8 +302,8 @@ two Vim highlighting settings for folds.  Set your own colors, obviously:
    highlight Folded     guibg=#0e0e0e guifg=Grey30  gui=NONE cterm=NONE
    highlight FoldColumn guibg=#0e0e0e guifg=Grey30  gui=NONE cterm=NONE
 
-Set the ``ctermfg`` and ``ctermbg`` instead of or in addition to ``guifg`` and
-``guibg`` if your setup uses those.
+Set the ``ctermfg`` and ``ctermbg`` instead of (or in addition to) ``guifg``
+and ``guibg`` if your setup uses those.
 
 Interaction with other plugins
 ------------------------------
@@ -318,11 +318,11 @@ FastFolds
 ~~~~~~~~~
 
 FastFolds does not seem to interfere with Cyfolds and vice versa outside a
-Python buffer, but FastFolds does introduce a very slight delay when opening
-and closing folds.  That is because it remaps the folding/unfolding keys to
-update all folds each time.  Disabling FastFolds for Python files eliminates
-this delay (but also the automatic fold updating on those fold commands).  The
-disabling command for a ``.vimrc`` is:
+Python buffer.  FastFolds with Cyfolds does introduce a very slight delay when
+opening and closing folds.  That is because it remaps the folding/unfolding
+keys to update the folds each time.  Disabling FastFolds for Python files
+eliminates this delay (but also the automatic fold updating on those fold
+commands).  The disabling command for a ``.vimrc`` is:
 
 .. code-block:: vim
 
