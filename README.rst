@@ -85,7 +85,7 @@ Cyfolds adds two new key bindings.
   either with ``zuz`` or one of the Vim commands.  When ``foldmethod`` is set
   to ``expr`` folds are updated after inserts but can still get messed up and
   require updating (for example, when deleting characters with ``x`` or lines
-  with ``dd``, since those change events do not trigger Vim to update the
+  with ``dd`` since those change events do not trigger Vim to update the
   folds).
   
   The ``zuz`` command updates all the folds, returning the folding method to
@@ -116,8 +116,8 @@ Cyfolds adds two new key bindings.
 Settings
 --------
 
-Keywords to fold under
-~~~~~~~~~~~~~~~~~~~~~~
+Keywords to trigger folding
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can define which particular keywords have folds after them by setting this
 configuration variable:
@@ -126,23 +126,26 @@ configuration variable:
 
    let cyfolds_fold_keywords = 'class,def,async def'
 
-The default values are shown.  For Cython, for example, you can set it to:
+The default values are shown.  For Cython folding, for example, you can set it
+to:
 
 .. code-block:: vim
 
    let cyfolds_fold_keywords = 'class,def,async def,cclass,cdef,cpdef'
 
 Any keyword which starts a line and where the statement ends in a colon
-can be used.  The list of all of them in Python is:
+can be used.  The list of all such keywords in Python is:
 
 .. code-block:: vim
 
    'class,def,async def,while,for,if,else,elif,with,try,except,finally'
 
 If a docstring appears immediately after any such definition it will remain
-unfolded just under the opening statement.  This list can be reset dynamically
-by passing the new list to the function
-``CyfoldsSetFoldKeywords(keyword_str)``.
+unfolded just under the opening statement.
+
+This list can be reset dynamically by passing the new list to the function
+``CyfoldsSetFoldKeywords(keyword_str)``.  For the new setting to take effect
+some buffer change must occur (to dirty the foldlevel cache).
 
 Number of docstring lines left unfolded
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,9 +157,9 @@ freestanding docstrings) can be set by a command such as:
 
    let cyfolds_lines_of_module_docstrings = -1
 
-The default value -1 never folds module docstrings.  Nonnegative numbers
-keep that many lines open, not including the last line which is never
-folded.
+The default value -1 always keeps the full module docstring unfolded.
+Nonnegative numbers keep that many lines open, not including the last line
+which is never folded.
 
 The number of lines to keep unfolded in docstrings under keywords such as
 ``def`` and ``class`` can be set by a command such as:
@@ -171,35 +174,35 @@ function or class code just below it is folded.
 Other settings
 ~~~~~~~~~~~~~~
 
-* To fix syntax highlighting on all updates, from the start of the file,
-  use this:
+* To fix syntax highlighting on all updates, from the start of the file, use
+  this (the default is 0):
 
   .. code-block:: vim
 
      let cyfolds_fix_syntax_highlighting_on_update = 1
 
-  The default is not to fix highlighting on all updates.
-
-* This command will change the default of Cyfolds starting with ``foldmethod=manual`` to
-  starting with ``foldmethod=expr``:
+* This command will change the default of Cyfolds starting with
+  ``foldmethod=manual`` to starting with ``foldmethod=expr``:
 
   .. code-block:: vim
 
      let cyfolds_start_in_manual_mode = 0
 
-* To disable loading of the Cyfolds plugin use this in your ``.vimrc``:
+* To completely disable loading of the Cyfolds plugin use this in your
+  ``.vimrc``:
 
   .. code-block:: vim
 
      let cyfolds = 0
 
 * Cyfolds turns off folding in insert mode and restores it on leaving insert
-  mode.  This is because in insert mode Vim updates the folds on every character,
-  which is slow.  It is also necessary for using the undotree to detect file
-  changes, since the updates need to be made after leaving insert mode.
+  mode.  This is because in insert mode Vim updates the folds on every
+  character, which is slow and not really needed.  Triggering updates after
+  inserts is also necessary for using the undotree to detect file changes.
 
-  There is an option to switch the change-detection method to a Python hash of
-  the buffer (though it is not recommended if the default method is working):
+  There is an option to switch the change-detection method from undotree to a
+  Python hash of the buffer (though it is not recommended if the default method
+  is working):
 
   .. code-block:: vim
 
@@ -212,8 +215,8 @@ In Vim folding the ``foldlevel`` setting determines which folds are open by
 default and which are closed.  Any folds with a level less than ``foldlevel``
 are open by default.  So when ``foldlevel`` equals 0 all folds are closed by
 default, and when it equals 99 all folds are open by default.  The
-``foldlevel`` value is increased by the Vim commands ``zr`` and ``zR`` (
-**r**\ educe folding), and decreased by the commands ``zm`` and ``zM`` (**m**\ ore
+``foldlevel`` value is increased by the Vim commands ``zr`` and ``zR`` ( **r**\
+educe folding), and decreased by the commands ``zm`` and ``zM`` (**m**\ ore
 folding).  The ``foldlevelstart`` setting is used to set the initial foldlevel
 when files are opened.
 
@@ -221,13 +224,13 @@ Cyfolds always sets the foldlevels of folded lines to the indent level divided
 by the shiftwidth (except for freestanding docstrings, where folds have one
 added to that value).  So the lines at the first level of indent always have
 foldlevel 0, foldable lines on the second level of indent have foldlevel 1,
-etc.  Setting ``foldlevel`` to 1, for example, will by default keep all folds
-for class and function definitions at the first indent level (0) open and close
-all the folds at higher indent levels (such as the methods of a 0-level class).
-Setting ``foldlevel`` to 2 will by default keep foldable lines at the first and
-second level of indent unfolded by default, and so forth.  The same holds true
-for indents due to keywords like, say, ``with`` which are not set to be folded.
-For consistency the folds inside them are nevertheless at the higher foldlevel.  
+etc.  Setting ``foldlevel`` to 1, for example, will keep all folds for class
+and function definitions at the first indent level (0) open and close all the
+folds at higher indent levels (such as the methods of a 0-level class).
+Setting ``foldlevel`` to 2 will keep foldable lines at the first and second
+level of indent unfolded, and so forth.  The same holds true for indents due to
+keywords which are not set to be folded (like, say, ``with``).  For consistency
+the folds inside them are nevertheless at the higher foldlevel.  
 
 These are the ``.vimrc`` settings I'm currently using:
 
