@@ -268,14 +268,31 @@ bar key (alternately, ``za`` could be remapped):
 While generally not recommended unless you have a very fast computer, Cyfolds
 with the setting below, along with the expr folding method, gives the ideal
 folding behavior.  It resets the folds after any changes to the text, such as
-from deleting and undoing.  Unfortunately it tends to be too slow to use with,
-for example, repeated ``x`` commands to delete words and repeated ``u``
-commands for multiple undos.
+from deleting and undoing, and after any inserts.  Unfortunately it tends to be
+too slow to use with, for example, repeated ``x`` commands to delete words and
+repeated ``u`` commands for multiple undos.
 
 .. code-block:: vim
 
    " Not recommended in general.
    autocmd TextChanged *.py call CyfoldsForceFoldUpdate()
+
+Finally, many Vim color themes have poor settings for the foldline (the visible
+line that appears for closed folds) and the foldcolumn (the optional left-side
+gutter that appears when ``foldcolumn`` is set greater than the default value
+of 0).  The colors can tend to be glaring and distracting, while I prefer that
+the background of the foldline match the normal background.  These are are the
+two Vim highlighting settings for folds.  Set your own colors, obviously:
+
+.. code-block:: vim
+
+   " Folding
+   " -------
+   highlight Folded     guibg=#0e0e0e guifg=Grey30  gui=NONE cterm=NONE
+   highlight FoldColumn guibg=#0e0e0e guifg=Grey30  gui=NONE cterm=NONE
+
+Set the ``ctermfg`` and ``ctermbg`` instead of or in addition to ``guifg`` and
+``guibg`` if your setup uses those.
 
 Interaction with other plugins
 ------------------------------

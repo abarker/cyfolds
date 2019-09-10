@@ -179,7 +179,7 @@ def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
         if EXPERIMENTAL:
             saved_buffer_lines_dict[cur_buffer_num] = [i for i in vim_buffer_lines]
 
-    foldlevel = foldlevel_cache[cur_buffer_num][lnum]
+    foldlevel: cy.int = foldlevel_cache[cur_buffer_num][lnum]
     #foldlevel = min(foldlevel, foldnestmax)
     foldfun_calls += 1
     return foldlevel
@@ -279,8 +279,8 @@ cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
     else:
         fold_indent_spaces_stack.pop()
         foldlevel_stack.pop()
-    prev_indent_spaces = fold_indent_spaces_stack[-1]
-    prev_foldlevel = foldlevel_stack[-1]
+    prev_indent_spaces: cy.int = fold_indent_spaces_stack[-1]
+    prev_foldlevel: cy.int = foldlevel_stack[-1]
     if DEBUG:
         print("   <-- decreasing foldlevel to {}".format(prev_foldlevel))
     return prev_indent_spaces, prev_foldlevel
@@ -290,7 +290,7 @@ cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
                                         indent_spaces: cy.int, shiftwidth: cy.int,
                                         docstring:bint=False):
     """Return the new foldlevel and the new shiftlevel."""
-    curr_foldlevel: cy.int = foldlevel_stack[-1]
+    #curr_foldlevel: cy.int = foldlevel_stack[-1] # Use if simply incrementing.
     new_foldlevel: cy.int
     new_fold_indent_spaces: cy.int
 
@@ -302,13 +302,14 @@ cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
 
 
 cdef bint is_in_string(in_single_quote_string: bint, in_single_quote_docstring: bint,
-                 in_double_quote_string: bint, in_double_quote_docstring: bint):
+                 in_double_quote_string: bint, in_double_quote_docstring: bint) nogil:
     """Combine the separate string conditions into a single in-string condition."""
     return (in_single_quote_string or in_single_quote_docstring or
             in_double_quote_string or in_double_quote_docstring)
 
 
-cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int, nest_braces: cy.int):
+cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
+                      nest_braces: cy.int) nogil:
     """Combine the separate nesting levels into a single test for nestedness."""
     return nest_parens or nest_brackets or nest_braces
 
@@ -362,19 +363,21 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
     lines_since_begin_triple: cy.int = -1 # Lines since begins_with_triple_quote was True.
     lines_since_end_triple: cy.int = -1 # Lines since ends_with_triple_quote was True.
 
+    # Properties continued with continuation lines.
+    begins_with_triple_quote: bint = False # Begins with non-nested, not-in-string """.
+    ends_with_triple_quote: bint = False # Ends with non-nested, in-string triple quote.
+    ends_with_colon: bint = False # Ends with non-nested, not-in-string colon.
+
     # Loop over the lines.
     line_num: cy.int = -1
     buffer_len: cy.int = len(buffer_lines)
     for line_num in range(buffer_len):
-        line = buffer_lines[line_num]
+        line: str = buffer_lines[line_num]
 
-        begins_with_triple_quote: bint # Begins with non-nested, not-in-string triple quote.
-        ends_with_triple_quote: bint   # Ends with non-nested, in-string triple quote.
-        ends_with_colon: bint          # Ends with non-nested, not-in-string colon.
         indent_spaces: cy.int          # The number of spaces the line is indented.
         last_non_whitespace_index: cy.int # Last non-whitespace on the line.
         line_is_only_comment: bint     # Line contains only a comment.
-        is_empty: bint                 # Line is empty.
+        is_empty: bint = False         # Line is empty.
 
         if prev_line_has_a_continuation:
             indent_spaces = 0
@@ -385,7 +388,6 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             ends_with_colon = False
             indent_spaces = 0
             line_is_only_comment = False
-            is_empty = False
 
         line_len: cy.int = len(line)
 
@@ -565,7 +567,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         if processing_docstring_indent and lines_since_end_triple == 0:
             # To not keep closing """ above, use lines_since_end_triple == 1, not 0.
             processing_docstring_indent = False
-            _prev_indent_spaces: cy.int
+            _prev_indent_spaces: cy.int # Unused, but unpacked.
             _prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
                                                        fold_indent_spaces_stack,
                                                        foldlevel_stack, docstring=True)

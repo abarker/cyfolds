@@ -21,16 +21,24 @@ except ImportError:
 
 GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
         "annotation_typing": True, # Type info from PEP484 annotations, keep True.
-        "infer_types": True,
-        "optimize.use_switch": True,
-        "optimize.unpack_method_calls": True,
+        "infer_types": True, # Default is None.
+        #"infer_types.verbose": True,
+        "optimize.use_switch": True, # Default is True.
+        "optimize.unpack_method_calls": True, # Default is True.
         "language_level": 3,
+
+        #"warn.undeclared": True,
+        #"warn.unreachable": True,
+        #"warn.maybe_uninitialized": True,
+        #"warn.unused": True,
+        #"warn.unused_arg": True,
+        #"warn.unused_result": True,
         }
 
 extensions = [Extension("cyfolds", ["cyfolds.pyx"],
                         #extra_compile_args=["-O1"],
                         extra_compile_args=["-O3"],
-                        include_dirs=[], # Maybe include "." if problems...
+                        include_dirs=[],
                         libraries=[],
                         library_dirs=[],
                         )]
@@ -39,7 +47,7 @@ ext_modules = cythonize(extensions,
                         compiler_directives=GLOBAL_CYTHON_DIRECTIVES,
                         verbose=True,
                         force=True,
-                        annotate=True,
+                        annotate=True, # Create the HTML annotation file.
                         )
 
 setup(
