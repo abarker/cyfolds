@@ -22,7 +22,8 @@ A screenshot of some example code with folding is shown here:
 
 Folding can be customized to occur for various keywords and to change the
 number of docstring lines to show.  By default all the text in docstrings is
-left unfolded under definitions with the ``def`` or ``class`` keywords.
+left unfolded after definitions with the ``class``, ``def``, or ``async def``
+keywords, and full module doctrings are shown.
 
 All the folds are calculated in one pass over the file, and the values are
 cached.  The per-buffer cached values are returned if there have been no
