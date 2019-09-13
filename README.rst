@@ -33,6 +33,10 @@ for more details of the algorithm.
 Installation
 ------------
 
+Note that Cyfolds requires a Vim that is compiled with Python 3 support.  It
+has currently only been compiled and tested on Ubuntu and Mint systems, with
+Vim versions 8.0 and 7.4, respectively.
+
 1. When using a plugin manager such as pathogen just clone this GitHub repo
    into the ``bundle`` directory of your ``.vim`` directory.
 
@@ -174,19 +178,29 @@ function or class code just below it is folded.
 Other settings
 ~~~~~~~~~~~~~~
 
-* To fix syntax highlighting on all updates, from the start of the file, use
-  this (the default is 0):
-
-  .. code-block:: vim
-
-     let cyfolds_fix_syntax_highlighting_on_update = 1
-
 * This command will change the default of Cyfolds starting with
   ``foldmethod=manual`` to starting with ``foldmethod=expr``:
 
   .. code-block:: vim
 
      let cyfolds_start_in_manual_mode = 0
+
+* To start without any folding, just use this in your ``.vimrc`` along with
+  any other folding options:
+
+  .. code-block:: vim
+
+     set nofoldenable
+
+  To initialize folding you can use the ``zi`` key sequence to toggle the
+  ``foldenable`` setting on and off.
+
+* To fix syntax highlighting on all updates, from the start of the file, use
+  this (the default is 0):
+
+  .. code-block:: vim
+
+     let cyfolds_fix_syntax_highlighting_on_update = 1
 
 * To completely disable loading of the Cyfolds plugin use this in your
   ``.vimrc``:
