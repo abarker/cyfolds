@@ -260,8 +260,8 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
 
    " General folding settings.
-   set foldenable " Enable folding.
-   "set nofoldenable " Disable folding.
+   set foldenable " Enable folding and show the current folds.
+   "set nofoldenable " Disable folding and show normal, unfolded text.
    set foldcolumn=0 " The width of the fold-info column on the left, default is 0
    set foldlevelstart=-1 " The initial foldlevel; 0 closes all, 99 closes none, -1 default.
    set foldminlines=0 " Minimum number of lines in a fold; don't fold small things.
@@ -269,8 +269,8 @@ These are the ``.vimrc`` settings I'm currently using:
 
 Sometimes opening visible folds with a higher fold level can take several
 applications of the ``zo`` or ``za`` command.  To force such folds to open or
-close immediately I define a fold-toggling function and bind it to the space
-bar key (alternately, ``za`` could be remapped):
+close immediately I define a fold-toggling function and bind it to the normal-mode space
+bar key in normal mode (alternately, ``za`` could be remapped):
 
 .. code-block:: vim
 
@@ -287,7 +287,7 @@ bar key (alternately, ``za`` could be remapped):
        endif
    endfunction
 
-   " This sets the space bar to toggle folding and unfolding.
+   " This sets the space bar to toggle folding and unfolding in normal mode.
    nnoremap <silent> <space> :call SuperFoldToggle()<CR>
 
 While generally not recommended unless you have a very fast computer, Cyfolds
