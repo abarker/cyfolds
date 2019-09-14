@@ -106,8 +106,9 @@ Cyfolds adds two new key bindings.
   With expr method folds are automatically updated upon leaving insert mode.
   With manual method there is no automatic fold updating; updating must be done
   explicitly, e.g.  with ``zuz``.  Folds are automatically updated upon
-  toggling with ``z,``.  The existing folds and their states are left unchanged
-  except for changes due to the update operation itself.
+  toggling to the ``expr`` method, but not to the ``manual`` method.  The
+  existing folds and their states are left unchanged except for changes due to
+  the update operation itself.
   
   The manual foldmethod is best for doing heavy, fast editing with a lot of
   switching in and out of insert mode.  With the expr method there can be a

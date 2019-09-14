@@ -72,17 +72,6 @@ endif
 
 function! CyfoldsBufEnterInit()
     " Initialize upon entering a buffer.
-    " TODO: Decide what to do if &foldenable is 0.  Want to not calc folds for
-    " startup speed, but be able to easily switch on folding later and have it
-    " just work.  What cmds (zuz or z,) should set foldenable if it is not set?
-    " Some of the Vim builtins set foldenable.
-    "
-    " Currently: Start in manual mode if foldenable is not set, and do not
-    " calculate the folds.  The zuz and z, commands will set foldenable and
-    " calculate the folds.  But, simply setting foldenable will not calculate
-    " the folds... that would require more key remapping.
-    "
-    " If foldenable is not set and in manual mode, no folds are calculated.
 
     if g:cyfolds_no_initial_fold_calc != 1
         setlocal foldmethod=expr
@@ -262,7 +251,7 @@ function! CyfoldsToggleManualFolds()
         setlocal foldmethod=manual
     else
         setlocal foldmethod=expr
-        call CyfoldsForceFoldUpdate() " TODO: Is this needed here, not above???
+        "call CyfoldsForceFoldUpdate() " Not needed; above line does it.
     endif
     echom "foldmethod=" . &l:foldmethod
 endfunction
