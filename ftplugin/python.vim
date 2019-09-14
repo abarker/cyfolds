@@ -65,11 +65,31 @@ if !exists("g:cyfolds_fix_syntax_highlighting_on_update")
     let g:cyfolds_fix_syntax_highlighting_on_update = 0
 endif
 
+if !exists("g:cyfolds_no_initial_fold_calc")
+    let g:cyfolds_no_initial_fold_calc = 0
+endif
+
 
 function! CyfoldsBufEnterInit()
     " Initialize upon entering a buffer.
+    " TODO: Decide what to do if &foldenable is 0.  Want to not calc folds for
+    " startup speed, but be able to easily switch on folding later and have it
+    " just work.  What cmds (zuz or z,) should set foldenable if it is not set?
+    " Some of the Vim builtins set foldenable.
+    "
+    " Currently: Start in manual mode if foldenable is not set, and do not
+    " calculate the folds.  The zuz and z, commands will set foldenable and
+    " calculate the folds.  But, simply setting foldenable will not calculate
+    " the folds... that would require more key remapping.
+    "
+    " If foldenable is not set and in manual mode, no folds are calculated.
 
-    setlocal foldmethod=expr
+    if g:cyfolds_no_initial_fold_calc != 1
+        setlocal foldmethod=expr
+    else
+        setlocal foldmethod=manual
+    endif
+
     setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
     setlocal foldtext=CyfoldsFoldText()
 
@@ -81,7 +101,7 @@ function! CyfoldsBufEnterInit()
     let b:suppress_insert_mode_switching = 0
 
     " Start with the chosen foldmethod.
-    if g:cyfolds_start_in_manual_method == 1
+    if g:cyfolds_start_in_manual_method == 1 && &foldmethod != 'manual'
         call DelayManualMethod()
     endif
 endfunction
@@ -210,7 +230,9 @@ endfunction
 function! CyfoldsForceFoldUpdate()
     " Force a fold update.  Unlike zx and zX this does not change the
     " open/closed state of any of the folds.  Can be mapped to a key like 'x,'
+    setlocal foldenable
     let b:update_saved_foldmethod = &l:foldmethod
+
     setlocal foldmethod=manual
     if b:update_saved_foldmethod != 'manual' " All methods except manual update folds.
         let &l:foldmethod = b:update_saved_foldmethod
@@ -240,7 +262,7 @@ function! CyfoldsToggleManualFolds()
         setlocal foldmethod=manual
     else
         setlocal foldmethod=expr
-        call CyfoldsForceFoldUpdate()
+        call CyfoldsForceFoldUpdate() " TODO: Is this needed here, not above???
     endif
     echom "foldmethod=" . &l:foldmethod
 endfunction

@@ -98,8 +98,8 @@ Cyfolds adds two new key bindings.
   updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
   which reset the open/closed states of folds.)
   
-  This key sequence is mapped to the function call
-  ``CyfoldsForceFoldUpdate()``.
+  This command sets ``foldenable`` if it is not set.  The key sequence is
+  mapped to the function call ``CyfoldsForceFoldUpdate()``.
 
 * The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
   and ``manual``.  By default Cyfolds starts with the foldmethod set to manual.
@@ -114,8 +114,8 @@ Cyfolds adds two new key bindings.
   small but noticeable delay in quickly moving in and out of insert mode,
   depending on the editing speed and the computer's speed.
   
-  This key sequence is mapped to the function call
-  ``CyfoldsToggleManualFolds()``.
+  This command sets ``foldenable`` if it is not set.  The key sequence is
+  mapped to the function call ``CyfoldsToggleManualFolds()``.
 
 Settings
 --------
@@ -202,6 +202,18 @@ Other settings
 
      let cyfolds_fix_syntax_highlighting_on_update = 1
 
+* To disable automatic fold calculations on opening a buffer you can use:
+
+  .. code-block:: vim
+
+     let g:cyfolds_no_initial_fold_calc = 1
+ 
+  This setting is useful if you only sometimes use folds and do not want the
+  fold calculations to happen automatically (a small startup slowdown).  This
+  setting also causes Cyfolds to start with ``foldmode`` set to ``manual``.  To
+  switch to using folding you need to explicitly calculate the folds, such as
+  with ``zuz`` or ``z,``.
+
 * To completely disable loading of the Cyfolds plugin use this in your
   ``.vimrc``:
 
@@ -257,7 +269,8 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_lines_of_module_docstrings = 20 " Lines to keep unfolded, -1 means keep all.
    let cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
    let cyfolds_start_in_manual_mode = 1 " Default is to start in manual mode.
-   let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
+   let g:cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
+   let cyfolds_fix_syntax_highlighting_on_update = 0 " Redo syntax highlighting on all updates.
 
    " General folding settings.
    set foldenable " Enable folding and show the current folds.
