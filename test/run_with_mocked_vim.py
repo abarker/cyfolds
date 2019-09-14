@@ -21,9 +21,11 @@ is tested by this program.
 # License details (MIT) can be found in the file LICENSE.
 #==============================================================================
 
+import sys
+sys.path.insert(1,"../python3")
+
 import cyfolds
 from cyfolds import get_foldlevel, setup_regex_pattern
-import sys
 
 setup_regex_pattern()
 

@@ -2,8 +2,11 @@
 """
 
 Write out the fold data lists for all the Python code files passed in on the
-command line.  Files are written to the same filename with the extra
-extension ".testdata" added.
+command line.  Files are written to the same filename with the extra extension
+".testdata" added.  These can then be automatically checked against the folds
+produced by the current version of Cyfolds by running
+`test_generated_python_folds` or by just running `pytest` in the directory
+which will run the testing program with nice output.
 
 """
 
