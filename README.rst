@@ -122,8 +122,8 @@ Cyfolds adds two new key bindings.
   This command sets ``foldenable`` if it is not already set.  The key sequence
   is mapped to the function call ``CyfoldsToggleManualFolds()``.
 
-Settings
---------
+Customizable settings
+---------------------
 
 Keywords to trigger folding
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
