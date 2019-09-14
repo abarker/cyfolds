@@ -77,6 +77,10 @@ Turn on folding in Vim, and plugins in general if you haven't already:
   set foldenable
   filetype plugin on
 
+These commands can go into your ``.vimrc`` to always be set.  Python files
+should now appear in Vim with Cyfolds folding, set to the default parameters.
+See below for the available parameter settings.
+
 New key mappings
 ----------------
 
@@ -186,24 +190,7 @@ Other settings
 
      let cyfolds_start_in_manual_mode = 0
 
-* To start without any folding, just use this in your ``.vimrc`` along with
-  any other folding options:
-
-  .. code-block:: vim
-
-     set nofoldenable
-
-  To initialize folding you can use the ``zi`` key sequence to toggle the
-  ``foldenable`` setting on and off.
-
-* To fix syntax highlighting on all updates, from the start of the file, use
-  this (the default is 0):
-
-  .. code-block:: vim
-
-     let cyfolds_fix_syntax_highlighting_on_update = 1
-
-* To disable automatic fold calculations on opening a buffer you can use:
+* To disable automatic fold calculations on opening a Python buffer you can use:
 
   .. code-block:: vim
 
@@ -214,6 +201,24 @@ Other settings
   setting also causes Cyfolds to start with ``foldmode`` set to ``manual``.  To
   switch to using folding you need to explicitly calculate the folds, such as
   with ``zuz`` or ``z,``.
+
+
+* To start Vim without any visible folding, just use this in your ``.vimrc``
+  along with any other folding options:
+
+  .. code-block:: vim
+
+     set nofoldenable
+
+  To then show the folds the Vim ``zi`` key sequence can be used to toggle the
+  ``foldenable`` setting on and off.
+
+* To also fix syntax highlighting on all fold updates, from the start of the
+  file, use this setting (the default is 0, no syntax fixing):
+
+  .. code-block:: vim
+
+     let cyfolds_fix_syntax_highlighting_on_update = 1
 
 * To completely disable loading of the Cyfolds plugin use this in your
   ``.vimrc``:
@@ -249,15 +254,15 @@ when files are opened.
 
 Cyfolds always sets the foldlevels of folded lines to the indent level divided
 by the shiftwidth (except for freestanding docstrings, where folds have one
-added to that value).  So the lines at the first level of indent always have
-foldlevel 0, foldable lines on the second level of indent have foldlevel 1,
-etc.  Setting ``foldlevel`` to 1, for example, will keep all folds for class
-and function definitions at the first indent level (0) open and close all the
-folds at higher indent levels (such as the methods of a 0-level class).
-Setting ``foldlevel`` to 2 will keep foldable lines at the first and second
-level of indent unfolded, and so forth.  The same holds true for indents due to
-keywords which are not set to be folded (like, say, ``with``).  For consistency
-the folds inside them are nevertheless at the higher foldlevel.  
+extra level added to that value).  So the lines at the first level of indent
+always have foldlevel 0, foldable lines on the second level of indent have
+foldlevel 1, etc.  Setting ``foldlevel`` to 1, for example, will keep all folds
+for class and function definitions at the first indent level (0) open and close
+all the folds at higher indent levels (such as the methods of a class at
+0-level).  Setting ``foldlevel`` to 2 will keep foldable lines at the first and
+second level of indent unfolded, and so forth.  The same holds true for indents
+due to keywords which are not set to be folded (like, say, ``with``).  For
+consistency the folds inside them are nevertheless at the higher foldlevel.  
 
 These are the ``.vimrc`` settings I'm currently using:
 
@@ -283,8 +288,8 @@ These are the ``.vimrc`` settings I'm currently using:
 
 Sometimes opening visible folds with a higher fold level can take several
 applications of the ``zo`` or ``za`` command.  To force such folds to open or
-close immediately I define a fold-toggling function and bind it to the normal-mode space
-bar key in normal mode (alternately, ``za`` could be remapped):
+close immediately I define a fold-toggling function and bind it to the
+normal-mode space bar key (alternately, ``za`` could be remapped):
 
 .. code-block:: vim
 
