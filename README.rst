@@ -33,9 +33,9 @@ for more details of the algorithm.
 Installation
 ------------
 
-Note that Cyfolds requires a Vim that is compiled with Python 3 support.  It
-has currently only been compiled and tested on Ubuntu and Mint systems, with
-Vim versions 8.0 and 7.4, respectively.
+Note that Cyfolds requires a Vim that is compiled with Python 3 support and
+timer support.  It has currently only been compiled and tested on Ubuntu and
+Mint systems, with Vim versions 8.0 and 7.4, respectively.
 
 1. When using a plugin manager such as pathogen just clone this GitHub repo
    into the ``bundle`` directory of your ``.vim`` directory.
@@ -96,27 +96,27 @@ Cyfolds adds two new key bindings.
   whatever method it was set to before the command.  The states of the folds,
   open or closed, are unchanged except for folds created or removed by the
   updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
-  which reset the open/closed states of folds.)
+  which reset the open/closed states of folds according to ``foldlevel``.)
   
-  This command sets ``foldenable`` if it is not set.  The key sequence is
-  mapped to the function call ``CyfoldsForceFoldUpdate()``.
+  This command sets ``foldenable`` if it is not already set.  The key sequence
+  is mapped to the function call ``CyfoldsForceFoldUpdate()``.
 
 * The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
   and ``manual``.  By default Cyfolds starts with the foldmethod set to manual.
   With expr method folds are automatically updated upon leaving insert mode.
   With manual method there is no automatic fold updating; updating must be done
-  explicitly, e.g.  with ``zuz``.  Folds are automatically updated upon
-  toggling to the ``expr`` method, but not to the ``manual`` method.  The
+  explicitly, e.g. with ``zuz``.  Folds are automatically updated upon toggling
+  to the ``expr`` method, but not on toggling to the ``manual`` method.  The
   existing folds and their states are left unchanged except for changes due to
-  the update operation itself.
+  any update operation.
   
   The manual foldmethod is best for doing heavy, fast editing with a lot of
   switching in and out of insert mode.  With the expr method there can be a
   small but noticeable delay in quickly moving in and out of insert mode,
   depending on the editing speed and the computer's speed.
   
-  This command sets ``foldenable`` if it is not set.  The key sequence is
-  mapped to the function call ``CyfoldsToggleManualFolds()``.
+  This command sets ``foldenable`` if it is not already set.  The key sequence
+  is mapped to the function call ``CyfoldsToggleManualFolds()``.
 
 Settings
 --------
