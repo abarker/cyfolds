@@ -183,7 +183,7 @@ function or class code just below it is folded.
 Other settings
 ~~~~~~~~~~~~~~
 
-* This command will change the default of Cyfolds starting with
+* This setting will change the default of Cyfolds starting with
   ``foldmethod=manual`` to starting with ``foldmethod=expr``:
 
   .. code-block:: vim
@@ -197,11 +197,10 @@ Other settings
      let g:cyfolds_no_initial_fold_calc = 1
  
   This setting is useful if you only sometimes use folds and do not want the
-  fold calculations to happen automatically (a small startup slowdown).  This
-  setting also causes Cyfolds to start with ``foldmode`` set to ``manual``.  To
-  switch to using folding you need to explicitly calculate the folds, such as
-  with ``zuz`` or ``z,``.
-
+  fold calculations to happen automatically (a small slowdown on startup).
+  This setting also causes Cyfolds to start with ``foldmethod`` set to
+  ``manual``.  To then switch to using folding you need to explicitly force the
+  folds to be updated, such as with ``zuz`` or ``z,``.
 
 * To start Vim without any visible folding, just use this in your ``.vimrc``
   along with any other folding options:
