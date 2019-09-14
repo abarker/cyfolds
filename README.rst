@@ -194,7 +194,7 @@ Other settings
 
   .. code-block:: vim
 
-     let g:cyfolds_no_initial_fold_calc = 1
+     let cyfolds_no_initial_fold_calc = 1
  
   This setting is useful if you only sometimes use folds and do not want the
   fold calculations to happen automatically (a small slowdown on startup).
@@ -274,7 +274,7 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_lines_of_module_docstrings = 20 " Lines to keep unfolded, -1 means keep all.
    let cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
    let cyfolds_start_in_manual_mode = 1 " Default is to start in manual mode.
-   let g:cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
+   let cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
    let cyfolds_fix_syntax_highlighting_on_update = 0 " Redo syntax highlighting on all updates.
 
    " General folding settings.
