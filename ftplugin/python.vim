@@ -145,6 +145,9 @@ function! GetPythonFoldViaCython(lnum)
 python3 << ----------------------- PythonCode ----------------------------------
 """Python code that calls the Cython function get_foldlevel and returns the
 foldlevel in the global variable cyfolds_pyfoldlevel."""
+# TODO: If this code were defined in cyfolds.pyx and then called as the argument
+# to the vim 'python' command then it might be more efficient (e.g., the fun call
+# overhead).  The lnum would still need passing, though, perhaps as a global.
 
 # Set some Python variables from vim ones, to pass as args to get_foldlevel.
 # Make sure the arguments to get_foldlevel are all ints!  These are vars which
