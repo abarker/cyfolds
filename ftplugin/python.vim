@@ -7,14 +7,26 @@
 " License details (MIT) can be found in the file LICENSE.
 "==============================================================================
 
+if exists("b:did_ftplugin")
+   finish
+endif
+let b:did_ftplugin = 1
+
+let s:cpo_save = &cpo
+set cpo&vim " No vim compatible mode; reset cpo to vim default.
+
 if !exists('g:cyfolds')
    let g:cyfolds = 1
 endif
 
 if exists('g:loaded_cyfolds') || &cp || g:cyfolds == 0
-    finish
+    finish " Don't run if already loaded or user set g:cyfolds=0.
 endif
 let g:loaded_cyfolds = 1
+
+let b:undo_ftplugin = "setl foldmethod< foldtext< foldexpr< foldenable< ofu<"
+                  \ . "| unlet b:match_ignorecase b:match_words b:suppress_insert_mode_switching"
+                  \ . " b:insert_saved_foldmethod b:update_saved_foldmethod"
 
 " What is the overhead of calling Python from Vim?  The cached foldlevel
 " values could be stored in a Vim list, which would eliminate the need to call
@@ -135,21 +147,26 @@ python3 << ----------------------- PythonCode ----------------------------------
 foldlevel in the global variable cyfolds_pyfoldlevel."""
 
 # Set some Python variables from vim ones, to pass as args to get_foldlevel.
-# Make sure the arguments to get_foldlevel are all ints.
+# Make sure the arguments to get_foldlevel are all ints!  These are vars which
+# might change, so they are reset each time but only when `lnum==1` (since foldexpr
+# will be called for each line but they will not change during that time).
 lnum = int(vim.eval("a:lnum"))
-shiftwidth = int(vim.eval("&shiftwidth"))
-foldnestmax = int(vim.eval("&foldnestmax"))
-cur_buffer_num = int(vim.eval("bufnr('%')"))
-lines_of_module_docstrings = int(vim.eval("g:cyfolds_lines_of_module_docstrings"))
-lines_of_fun_and_class_docstrings = int(vim.eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
+if lnum == 1:
+   shiftwidth = int(vim.eval("&shiftwidth"))
+   foldnestmax = int(vim.eval("&foldnestmax"))
+   cur_buffer_num = int(vim.eval("bufnr('%')"))
+   lines_of_module_docstrings = int(vim.eval("g:cyfolds_lines_of_module_docstrings"))
+   lines_of_fun_and_class_docstrings = int(vim.eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
 
-hash_for_changes = int(vim.eval("g:cyfolds_hash_for_changes"))
-if hash_for_changes:
-    cur_undo_sequence = -1 # Used like None.
-else:
-    cur_undo_sequence = int(vim.eval("undotree().seq_cur"))
+   hash_for_changes = int(vim.eval("g:cyfolds_hash_for_changes"))
+   if hash_for_changes:
+       cur_undo_sequence = -1 # The value -1 is used like None here.
+   else:
+       # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
+       cur_undo_sequence = int(vim.eval("undotree().seq_cur"))
 
-# Call the Cython function to do the computation.
+# Call the Cython function to do the actual computation (which just returns cached
+# values if the buffer has not changed).
 computed_foldlevel = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
                                    foldnestmax, shiftwidth, lines_of_module_docstrings,
                                    lines_of_fun_and_class_docstrings)
@@ -312,4 +329,7 @@ endfunction
 "
 " something like :g/egg/foldopen
 " https://stackoverflow.com/questions/18805584/how-to-open-all-the-folds-containing-a-search-pattern-at-the-same-time
+
+let &cpo = s:cpo_save
+unlet s:cpo_save
 
