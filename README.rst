@@ -190,7 +190,7 @@ Other settings
 
   .. code-block:: vim
 
-     let cyfolds_start_in_manual_mode = 0
+     let cyfolds_start_in_manual_method = 0
 
 * To disable automatic fold calculations on opening a Python buffer you can use:
 
@@ -275,7 +275,7 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_fold_keywords = "class,def,async def" " Python default.
    let cyfolds_lines_of_module_docstrings = 20 " Lines to keep unfolded, -1 means keep all.
    let cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
-   let cyfolds_start_in_manual_mode = 1 " Default is to start in manual mode.
+   let cyfolds_start_in_manual_method = 1 " Default is to start in manual mode.
    let cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
    let cyfolds_fix_syntax_highlighting_on_update = 0 " Redo syntax highlighting on all updates.
 
@@ -313,8 +313,8 @@ normal-mode space bar key (alternately, ``za`` could be remapped):
 While generally not recommended unless you have a very fast computer, Cyfolds
 with the setting below, along with the expr folding method, gives the ideal
 folding behavior.  It resets the folds after any changes to the text, such as
-from deleting and undoing, and after any inserts.  Unfortunately it tends to be
-too slow to use with, for example, repeated ``x`` commands to delete words and
+from deleting and undoing, and after any inserts.  Unfortunately it can be too
+slow to use with, for example, repeated ``x`` commands to delete words and
 repeated ``u`` commands for multiple undos.
 
 .. code-block:: vim
