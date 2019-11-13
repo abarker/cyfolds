@@ -3,13 +3,16 @@
 Cyfolds
 =======
 
-Cyfolds is a Vim plugin to calculate syntax-aware folds for Python files.  When
-folding the code of functions and classes some context is left unfolded above
-the folds.  In particular, the full function/class parameter list is left
-unfolded and optionally also the function/class docstrings.  This gives
-something like an API view of the code.  The full file is parsed to find the
-syntax, so no heuristics are needed.  The plugin is written in Cython and
-compiles to optimized C code for fast performance.
+Cyfolds is a Vim plugin to calculate syntax-aware folds for Python files.
+While some Python-folding plugins aim to fold as much text as possible, Cyfolds
+tried to keep some context around the folds.  In particular, the full
+function/class parameter list is always left unfolded and the function/class
+docstrings can optionally be left fully or partially unfolded.  This gives
+something like an API view of the code.
+
+The full file is parsed to find the syntax, so no heuristics are needed and the
+folding is always correct.  The plugin is written in Cython and compiles to
+optimized C code for fast performance.
 
 A screenshot of some example code with folding is shown here:
 
@@ -30,7 +33,8 @@ keywords, and full module doctrings are shown.
 All the folds are calculated in one pass over the file, and the values are
 cached.  The per-buffer cached values are returned if there have been no
 changes in the respective buffer since the last call.  See the Cython code file
-for more details of the algorithm.
+for more details of the algorithm.  The plugin is only loaded when a Python
+file is opened.
 
 Installation
 ------------
@@ -56,7 +60,7 @@ Mint systems, with Vim versions 8.0 and 7.4, respectively.
    compiler: https://developer.apple.com/.
 
 3. After you have the compiler set up, the Python build requirements
-   are Cython and setuptools.  This command will install them:
+   are Cython and setuptools.  This command installs them:
 
    .. code-block:: bash
 
