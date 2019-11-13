@@ -39,9 +39,9 @@ file is opened.
 Installation
 ------------
 
-Note that Cyfolds requires a Vim that is compiled with Python 3 support and
-timer support.  It has currently only been compiled and tested on Ubuntu and
-Mint systems, with Vim versions 8.0 and 7.4, respectively.
+Cyfolds requires a Vim that is compiled with Python 3 support and timer
+support.  It has currently only been compiled and tested on Ubuntu and Mint
+systems, with Vim versions 8.0 and 7.4, respectively.
 
 1. When using a plugin manager such as pathogen just clone this GitHub repo
    into the ``bundle`` directory of your ``.vim`` directory.
@@ -92,7 +92,7 @@ New key mappings
 ----------------
 
 In addition to the usual Vim folding keys (see ``:help fold-commands`` in Vim),
-Cyfolds adds two new key bindings.
+Cyfolds adds two new key bindings:
 
 * The ``zuz`` key sequence is used to force the folds to be updated.  (This is
   the same as the FastFolds mapping, but only applies in Python code.)  With
