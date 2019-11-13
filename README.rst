@@ -69,7 +69,8 @@ Mint systems, with Vim versions 8.0 and 7.4, respectively.
 4. Now go to the cloned repo and into the ``python3`` directory.   Run the Bash
    script ``compile`` located in that directory.  If you cannot run Bash
    scripts, you can run ``python3 setup.py build_ext --inplace`` directly from
-   the command line.
+   the command line.  To modify the compile options look in the `setup.py`
+   file.
 
 The plugin is now ready to use in Vim.
 
