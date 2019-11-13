@@ -5,9 +5,9 @@ python3 setup.py build_ext --inplace "$@" || exit 1
 echo
 echo "Cleanup unneeded files:"
 echo "   rm -rf build  cyfolds.html  cyfolds.c"
-echo -n "Run the remove? [yn] "
+echo -n "Run the remove (default is 'y')? [yn] "
 read yesno
-if [ "$yesno" == "y" ] || [ "$yesno" == "Y" ]; then
+if [ "$yesno" != "n" ] && [ "$yesno" != "N" ]; then
     rm -rf build cyfolds.html cyfolds.c
 fi
 

@@ -69,11 +69,16 @@ especially on startup.
 # This file is part of the Cyfolds package, Copyright (c) 2019 Allen Barker.
 # License details (MIT) can be found in the file LICENSE.
 #==============================================================================
+# Note: When undeclared warnings are turned on many module-scope definitions
+# give "implicit declaration" warnings.  The annotated type declarations do not
+# seem to be getting parsed.  The types should be inferrable from the initial
+# value, though.  An explicit declaration that doesn't raise that warning would
+# look like, e.g.,
+#    cdef cy.int shiftwidth = -1
 
 DEBUG: bint = False
 TESTING: bint = False
 USE_CACHING: bint = True
-EXPERIMENTAL: bint = False
 
 try:
     import vim
@@ -99,24 +104,65 @@ from cython import bint # C int coerced to bool.
 
 buffer_state_digest_dict: Dict[cy.int, cy.int] = {} # Digested states, by buffer num.
 foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Foldlevel values, by buffer num.
-# Config values are saved since cache is dirty if they change.
+# Config values are saved since the cache is dirtied if they change.
 config_var_settings: (cy.int, cy.int, cy.int, cy.int) = (-2, -2, -2, -2)
 
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
 foldfun_calls: cy.int = 0 # Global counting the num of calls to get_foldlevel (debugging).
 
-saved_buffer_lines_dict: Dict(cy.int, List(str)) = {} # Hashes indexed by buffer number.
-
 fold_keywords_matcher = None # Global later set to a compiled regex that matches keywords.
 default_fold_keywords: str = "class,def,cdef,cpdef,async def"
 
 
-def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
-                  cur_undo_sequence:cy.int=-1,
-                  foldnestmax:cy.int=20, shiftwidth:cy.int=4,
-                  lines_of_module_docstrings:cy.int=-1,
-                  lines_of_fun_and_class_docstrings:cy.int=-1,
-                  test_buffer=None):
+# Global variables used in `call_get_foldlevel`.  These are persistent in order
+# to not have to reset them from the vim object each time.
+shiftwidth: cy.int = -1
+foldnestmax: cy.int = -1
+cur_buffer_num: cy.int = -1
+lines_of_module_docstrings: cy.int = -1
+lines_of_fun_and_class_docstrings: cy.int = -1
+hash_for_changes: cy.int = -1
+cur_undo_sequence: cy.int = -1
+
+
+def call_get_foldlevel():
+    """Get the necessary vim variable values and call get_foldlevel.  Then set the global
+    value as a way to pass the result back or return it.  This allows `get_foldlevel` to
+    be a cdef and cythonizes the argument-getting commands."""
+    global shiftwidth, foldnestmax, cur_buffer_num, lines_of_module_docstrings
+    global lines_of_fun_and_class_docstrings, hash_for_changes, cur_undo_sequence
+
+    lnum: cy.int = int(vim.eval("a:lnum"))
+    if lnum == 1:
+       shiftwidth = int(vim.eval("&shiftwidth"))
+       foldnestmax = int(vim.eval("&foldnestmax"))
+       cur_buffer_num = int(vim.eval("bufnr('%')"))
+       lines_of_module_docstrings = int(vim.eval("g:cyfolds_lines_of_module_docstrings"))
+       lines_of_fun_and_class_docstrings = int(vim.eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
+
+       hash_for_changes = int(vim.eval("g:cyfolds_hash_for_changes"))
+       if hash_for_changes:
+           cur_undo_sequence = -1 # The value -1 is used like None here.
+       else:
+           # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
+           cur_undo_sequence = int(vim.eval("undotree().seq_cur"))
+ 
+    # Call the Cython function to do the actual computation (which just returns cached
+    # values if the buffer has not changed).
+    computed_foldlevel: cy.int = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
+                                               foldnestmax, shiftwidth, lines_of_module_docstrings,
+                                               lines_of_fun_and_class_docstrings)
+ 
+    # Set the return value as a global vim variable, to pass it back to vim.
+    vim.command("let g:cyfolds_pyfoldlevel = {}".format(computed_foldlevel))
+
+
+cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
+                          cur_undo_sequence:cy.int=-1,
+                          foldnestmax:cy.int=20, shiftwidth:cy.int=4,
+                          lines_of_module_docstrings:cy.int=-1,
+                          lines_of_fun_and_class_docstrings:cy.int=-1,
+                          test_buffer: object = None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that this
     function is called from vim, and expects `lnum` to be numbered from 1 rather than
     zero.  The `test_buffer` if for passing in a mock of the `vim.current.buffer`
@@ -129,7 +175,7 @@ def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
     hashing instead for dirty-cache change detection."""
     # Be SURE all int args passed to this function have been converted from strings.
     global recalcs, foldfun_calls # Debugging counts, persistent.
-    global saved_buffer_lines_dict, config_var_settings
+    global config_var_settings
     if fold_keywords_matcher is None:
         setup_regex_pattern()
     new_config_var_settings: (cy.int, cy.int, cy.int, cy.int)
@@ -150,7 +196,8 @@ def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
                 else:
                     vim_buffer_lines = test_buffer
                 # Convert the buffer into a tuple of strings, for hashing.
-                buffer_lines = tuple(i for i in vim_buffer_lines)
+                #buffer_lines = tuple(i for i in vim_buffer_lines) # Gives cython closure crash error.
+                buffer_lines = tuple(vim_buffer_lines) # DEBUG, replace above to get cpdef not def.
                 buffer_state_digest: cy.int = hash(buffer_lines) # NOTE: really Py_ssize_t
             else:
                 buffer_state_digest: cy.int = cur_undo_sequence
@@ -176,8 +223,6 @@ def get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
                              lines_of_module_docstrings,
                              lines_of_fun_and_class_docstrings)
         recalcs += 1
-        if EXPERIMENTAL:
-            saved_buffer_lines_dict[cur_buffer_num] = [i for i in vim_buffer_lines]
 
     foldlevel: cy.int = foldlevel_cache[cur_buffer_num][lnum]
     #foldlevel = min(foldlevel, foldnestmax)
@@ -196,6 +241,7 @@ def delete_buffer_cache(buffer_num: cy.int):
         del foldlevel_cache[buffer_num]
 
 
+# This dict is used in setup_regex_pattern, below.
 keyword_pattern_dict: Dict[str,str] = {"else": r"else:",
                                        "try": r"try:",
                                        "finally": r"finally:",

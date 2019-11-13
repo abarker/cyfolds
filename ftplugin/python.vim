@@ -117,7 +117,7 @@ augroup END
 
 
 python3 << ----------------------- PythonCode ----------------------------------
-"""Python initialization code.  Import the function get_foldlevel."""
+"""Python initialization code.  Import the function call_get_foldlevel."""
 import sys
 from os.path import normpath, join
 import vim
@@ -128,7 +128,7 @@ cyfolds_fold_keywords = vim.eval("cyfolds_fold_keywords")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
 
-from cyfolds import get_foldlevel, delete_buffer_cache, setup_regex_pattern
+from cyfolds import delete_buffer_cache, setup_regex_pattern, call_get_foldlevel
 setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
 
@@ -141,43 +141,7 @@ function! GetPythonFoldViaCython(lnum)
     " This function is evaluated for each line and returns the folding level.
     " https://candidtim.github.io/vim/2017/08/11/write-vim-plugin-in-python.html
     " How to return Python values back to vim: https://stackoverflow.com/questions/17656320/
-
-python3 << ----------------------- PythonCode ----------------------------------
-"""Python code that calls the Cython function get_foldlevel and returns the
-foldlevel in the global variable cyfolds_pyfoldlevel."""
-# TODO: If this code were defined in cyfolds.pyx and then called as the argument
-# to the vim 'python' command then it might be more efficient (e.g., the fun call
-# overhead).  The lnum would still need passing, though, perhaps as a global.
-
-# Set some Python variables from vim ones, to pass as args to get_foldlevel.
-# Make sure the arguments to get_foldlevel are all ints!  These are vars which
-# might change, so they are reset each time but only when `lnum==1` (since foldexpr
-# will be called for each line but they will not change during that time).
-lnum = int(vim.eval("a:lnum"))
-if lnum == 1:
-   shiftwidth = int(vim.eval("&shiftwidth"))
-   foldnestmax = int(vim.eval("&foldnestmax"))
-   cur_buffer_num = int(vim.eval("bufnr('%')"))
-   lines_of_module_docstrings = int(vim.eval("g:cyfolds_lines_of_module_docstrings"))
-   lines_of_fun_and_class_docstrings = int(vim.eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
-
-   hash_for_changes = int(vim.eval("g:cyfolds_hash_for_changes"))
-   if hash_for_changes:
-       cur_undo_sequence = -1 # The value -1 is used like None here.
-   else:
-       # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
-       cur_undo_sequence = int(vim.eval("undotree().seq_cur"))
-
-# Call the Cython function to do the actual computation (which just returns cached
-# values if the buffer has not changed).
-computed_foldlevel = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
-                                   foldnestmax, shiftwidth, lines_of_module_docstrings,
-                                   lines_of_fun_and_class_docstrings)
-
-# Set the return value as a global vim variable, to pass it back to vim.
-vim.command("let g:cyfolds_pyfoldlevel = {}".format(computed_foldlevel))
------------------------ PythonCode ----------------------------------
-
+    python3 call_get_foldlevel()
     return g:cyfolds_pyfoldlevel
 
 endfunction

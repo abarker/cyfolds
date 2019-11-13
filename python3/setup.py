@@ -29,15 +29,15 @@ GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
 
         #"warn.undeclared": True,
         #"warn.unreachable": True,
-        #"warn.maybe_uninitialized": True,
+        "warn.maybe_uninitialized": True,
         #"warn.unused": True,
         #"warn.unused_arg": True,
         #"warn.unused_result": True,
         }
 
 extensions = [Extension("cyfolds", ["cyfolds.pyx"],
-                        #extra_compile_args=["-O1"],
                         extra_compile_args=["-O3"],
+                        #extra_compile_args=["-O1"],
                         include_dirs=[],
                         libraries=[],
                         library_dirs=[],
