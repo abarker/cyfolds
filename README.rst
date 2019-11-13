@@ -100,7 +100,7 @@ Cyfolds adds two new key bindings:
   either with ``zuz`` or one of the Vim commands.  When ``foldmethod`` is set
   to ``expr`` folds are updated after inserts but can still get messed up and
   require updating (for example, when deleting characters with ``x`` or lines
-  with ``dd`` since those change events do not trigger Vim to update the
+  with ``dd``, since those change events do not trigger Vim to update the
   folds).
   
   The ``zuz`` command updates all the folds, returning the folding method to
@@ -109,8 +109,8 @@ Cyfolds adds two new key bindings:
   updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
   which reset the open/closed states of folds according to ``foldlevel``.)
   
-  This command sets ``foldenable`` if it is not already set.  The key sequence
-  is mapped to the function call ``CyfoldsForceFoldUpdate()``.
+  This command sets ``foldenable`` for the buffer if it is not already set.
+  The key sequence is mapped to the function call ``CyfoldsForceFoldUpdate()``.
 
 * The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
   and ``manual``.  By default Cyfolds starts with the foldmethod set to manual.
@@ -119,15 +119,16 @@ Cyfolds adds two new key bindings:
   explicitly, e.g. with ``zuz``.  Folds are automatically updated upon toggling
   to the ``expr`` method, but not on toggling to the ``manual`` method.  The
   existing folds and their states are left unchanged except for changes due to
-  any update operation.
+  the update operation itself.
   
   The manual foldmethod is best for doing heavy, fast editing with a lot of
   switching in and out of insert mode.  With the expr method there can be a
   small but noticeable delay in quickly moving in and out of insert mode,
   depending on the editing speed and the computer's speed.
   
-  This command sets ``foldenable`` if it is not already set.  The key sequence
-  is mapped to the function call ``CyfoldsToggleManualFolds()``.
+  This command sets ``foldenable`` for the buffer if it is not already set.
+  The key sequence is mapped to the function call
+  ``CyfoldsToggleManualFolds()``.
 
 Customizable settings
 ---------------------
@@ -178,7 +179,7 @@ Nonnegative numbers keep that many lines open, not including the last line
 which is never folded.
 
 The number of lines to keep unfolded in docstrings under keywords such as
-``def`` and ``class`` can be set by a command such as:
+``def`` and ``class`` can similarly be set by a command such as:
 
 .. code-block:: vim
 
