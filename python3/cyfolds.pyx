@@ -75,6 +75,8 @@ especially on startup.
 # value, though.  An explicit declaration that doesn't raise that warning would
 # look like, e.g.,
 #    cdef cy.int shiftwidth = -1
+# Sometimes Cython (versioni 0.29.14) does seem to recognize regular type annotations
+# when they are not combined with an assignment operation.
 
 DEBUG: bint = False
 TESTING: bint = False
@@ -173,6 +175,8 @@ cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
 
     The -1 value for cur_undo_sequence represents a `None` value, and means to use
     hashing instead for dirty-cache change detection."""
+    # This function is cpdef instead of cdef because some vim-mocking debugging code
+    # (run_with_mocked_vim) expects to be able to call it directly.
     # Be SURE all int args passed to this function have been converted from strings.
     global recalcs, foldfun_calls # Debugging counts, persistent.
     global config_var_settings
@@ -217,7 +221,8 @@ cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
         else:
             vim_buffer_lines = test_buffer
         # Get a new foldlevel_cache list and recalculate all the foldlevels.
-        new_cache_list: List[cy.int] = [0] * len(vim_buffer_lines)
+        new_cache_list: List[cy.int]
+        new_cache_list = [0] * len(vim_buffer_lines)
         foldlevel_cache[cur_buffer_num] = new_cache_list
         calculate_foldlevels(new_cache_list, vim_buffer_lines, shiftwidth,
                              lines_of_module_docstrings,
@@ -254,7 +259,9 @@ def setup_regex_pattern(fold_keywords_string: str=default_fold_keywords):
     `pat_string` should be a comma-separated list of keywords."""
     global fold_keywords_matcher
 
-    keywords_list: List[str] = fold_keywords_string.split(",")
+    keywords_list: List[str]
+    keywords_list = fold_keywords_string.split(",")
+    k: str
     keywords_list = [keyword_pattern_dict.get(k, k + r"[\s\t]") for k in keywords_list]
     pattern_string: str = "|".join(keywords_list)
 

@@ -21,7 +21,7 @@ except ImportError:
 
 GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
         "annotation_typing": True, # Type info from PEP484 annotations, keep True.
-        "infer_types": True, # Default is None.
+        "infer_types": True, # Default is None, keep true.
         #"infer_types.verbose": True,
         "optimize.use_switch": True, # Default is True.
         "optimize.unpack_method_calls": True, # Default is True.
