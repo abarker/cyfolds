@@ -507,7 +507,8 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     if in_double_quote_docstring or not in_string:
                         if in_string:
                             ends_with_triple_quote = True # Provisional; may toggle off.
-                        elif (not in_string and i == indent_spaces
+                        elif ((i == indent_spaces or # Note in_string is false here.
+                               i == indent_spaces + 1 and line[indent_spaces] == "r")
                                             and not prev_line_has_a_continuation):
                             begins_with_triple_quote = True
                             lines_since_begin_triple = 0
@@ -521,7 +522,8 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     if in_single_quote_docstring or not in_string:
                         if in_string:
                             ends_with_triple_quote = True # Provisional; may toggle off.
-                        elif (not in_string and i == indent_spaces
+                        elif ((i == indent_spaces or # Note in_string is false here.
+                               i == indent_spaces + 1 and line[indent_spaces] == "r")
                                             and not prev_line_has_a_continuation):
                             begins_with_triple_quote = True
                             lines_since_begin_triple = 0
