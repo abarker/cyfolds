@@ -10,9 +10,9 @@ function/class parameter list is always left unfolded and the function/class
 docstrings can optionally be left fully or partially unfolded.  This gives
 something like an API view of the code.
 
-The full file is parsed to find the syntax, so no heuristics are needed and the
-folding is always correct.  The plugin is written in Cython and compiles to
-optimized C code for fast performance.
+The plugin is written in Cython and compiles to optimized C code for fast
+performance.  The full file is parsed to find the syntax, so no heuristics are
+needed and the folding is always computed correctly.
 
 A screenshot of some example code with folding is shown here:
 
