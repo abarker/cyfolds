@@ -122,6 +122,24 @@ import sys
 from os.path import normpath, join
 import vim
 
+### Consider something like this for neovim, but early test show no gain...
+### https://github.com/neovim/neovim/issues/7063
+#try: # See if in Neovim.
+#    vim_eval = vim.api.eval
+#    vim_command = vim.api.command
+#    def get_current_buf():
+#        return vim.api.get_current_buf()
+#except AttributeError: # No, in regular Vim.
+#    vim_eval = vim.eval
+#    vim_command = vim.command
+#    def get_current_buf():
+#        return vim.current.buffer
+#
+#import cyfolds
+#cyfolds.vim_eval = vim_eval
+#cyfolds.vim_command = vim_command
+#cyfolds.get_current_buf = get_current_buf
+
 # Put vim python3 directory on sys.path so the plugin can be imported.
 vimhome = vim.eval("s:vimhome")
 cyfolds_fold_keywords = vim.eval("cyfolds_fold_keywords")

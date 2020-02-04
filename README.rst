@@ -84,8 +84,11 @@ Turn on folding in Vim, and plugins in general if you haven't already:
   set foldenable
   filetype plugin on
 
+Note that Python indentations are assumed to occur at multiples of the value of
+the `shiftwidth` setting (usually `set shiftwidth=4` is used for Python code).
+
 These commands can go into your ``.vimrc`` to always be set.  Python files
-should now appear in Vim with Cyfolds folding, set to the default parameters.
+should then appear in Vim with Cyfolds folding, set to the default parameters.
 See below for the available parameter settings.
 
 New key mappings
