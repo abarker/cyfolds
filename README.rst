@@ -22,7 +22,7 @@ A screenshot of some example code with folding is shown here:
  
    <p align="center">
    <img src="https://github.com/abarker/cyfolds/blob/master/doc/screenshot_encabulator_reduced.png"
-          width="475">
+          width="500">
    </p>
 
 Folding can be customized to occur for various keywords and to change the
