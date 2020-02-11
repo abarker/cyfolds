@@ -122,27 +122,16 @@ import sys
 from os.path import normpath, join
 import vim
 
-### Consider something like this for neovim, but early test show no gain...
-### https://github.com/neovim/neovim/issues/7063
-#try: # See if in Neovim.
-#    vim_eval = vim.api.eval
-#    vim_command = vim.api.command
-#    def get_current_buf():
-#        return vim.api.get_current_buf()
-#except AttributeError: # No, in regular Vim.
-#    vim_eval = vim.eval
-#    vim_command = vim.command
-#    def get_current_buf():
-#        return vim.current.buffer
-#
-#import cyfolds
-#cyfolds.vim_eval = vim_eval
-#cyfolds.vim_command = vim_command
-#cyfolds.get_current_buf = get_current_buf
+import cyfolds
+# These vars are set in cyfolds.py to try to accomodate slowness issues when in Neovim.
+# https://github.com/neovim/neovim/issues/7063
+vim_eval = cyfolds.vim_eval
+#vim_command = cyfolds.vim_command
+#vim_current_buffer = cyfolds.vim_current_buffer
 
 # Put vim python3 directory on sys.path so the plugin can be imported.
-vimhome = vim.eval("s:vimhome")
-cyfolds_fold_keywords = vim.eval("cyfolds_fold_keywords")
+vimhome = vim_eval("s:vimhome")
+cyfolds_fold_keywords = vim_eval("cyfolds_fold_keywords")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
 
@@ -168,7 +157,7 @@ endfunction
 function! DeleteBufferCache(buffer_num)
 " Free the cache memory when a buffer is deleted.
 python3 << ----------------------- PythonCode ----------------------------------
-buffer_num = int(vim.eval("a:buffer_num"))
+buffer_num = int(vim_eval("a:buffer_num"))
 delete_buffer_cache(buffer_num)
 ----------------------- PythonCode ----------------------------------
 endfunction
@@ -263,7 +252,7 @@ function! CyfoldsSetFoldKeywords(keyword_str)
    " Dynamically assign the folding keywords to those on the string `keyword_str`.
    let g:cyfolds_fold_keywords = a:keyword_str
 python3 << ----------------------- PythonCode ----------------------------------
-cyfolds_fold_keywords = vim.eval("a:keyword_str")
+cyfolds_fold_keywords = vim_eval("a:keyword_str")
 setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
    call CyfoldsForceFoldUpdate()
