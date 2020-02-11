@@ -146,8 +146,8 @@ configuration variable:
 
    let cyfolds_fold_keywords = 'class,def,async def'
 
-The default values are shown.  For Cython folding, for example, you can set it
-to:
+The default values are shown above.  For Cython folding, for example, you can
+set it to:
 
 .. code-block:: vim
 
@@ -208,10 +208,10 @@ Other settings
      let cyfolds_no_initial_fold_calc = 1
  
   This setting is useful if you only sometimes use folds and do not want the
-  fold calculations to happen automatically (a small slowdown on startup).
-  This setting also causes Cyfolds to start with ``foldmethod`` set to
-  ``manual``.  To then switch to using folding you need to explicitly force the
-  folds to be updated, such as with ``zuz`` or ``z,``.
+  fold calculations to happen automatipcally (a very small slowdown on
+  startup).  This setting also causes Cyfolds to start with ``foldmethod`` set
+  to ``manual``.  To then switch to using folding you need to explicitly force
+  the folds to be updated, such as with ``zuz`` or ``z,``.
 
 * To start Vim without any visible folding, just use this in your ``.vimrc``
   along with any other folding options:
@@ -286,7 +286,7 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_lines_of_fun_and_class_docstrings = -1 " Lines to keep, -1 means keep all.
    let cyfolds_start_in_manual_method = 1 " Default is to start in manual mode.
    let cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
-   let cyfolds_fix_syntax_highlighting_on_update = 0 " Redo syntax highlighting on all updates.
+   let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
 
    " General folding settings.
    set foldenable " Enable folding and show the current folds.
@@ -335,8 +335,8 @@ Finally, some Vim color themes have poor settings for the foldline (the visible
 line that appears for closed folds) and the foldcolumn (the optional left-side
 gutter that appears when ``foldcolumn`` is set greater than the default value
 of 0).  The colors can sometimes be glaring and distracting.  I prefer the
-background of the foldline to match the normal background.  These are are the
-two Vim highlighting settings for folds.  Use your own colors, obviously:
+background of the foldline to match the normal background.  These are the two
+Vim highlighting settings for folds.  Use your own colors, obviously:
 
 .. code-block:: vim
 
