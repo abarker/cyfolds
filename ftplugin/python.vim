@@ -135,7 +135,7 @@ cyfolds_fold_keywords = vim_eval("cyfolds_fold_keywords")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
 
-from cyfolds import delete_buffer_cache, setup_regex_pattern, call_get_foldlevel
+from cyfolds import delete_buffer_cache, setup_regex_pattern, call_get_foldlevels
 setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
 
@@ -148,11 +148,13 @@ function! GetPythonFoldViaCython(lnum)
     " This function is evaluated for each line and returns the folding level.
     " https://candidtim.github.io/vim/2017/08/11/write-vim-plugin-in-python.html
     " How to return Python values back to vim: https://stackoverflow.com/questions/17656320/
-    python3 call_get_foldlevel()
-    return g:cyfolds_pyfoldlevel
-
+    " TODO: Is there a way to define dirty cache function in vimscript, to
+    " check here before calling the function (which is expensive in nvim)?
+    if a:lnum == 1
+       python3 call_get_foldlevels()
+    endif
+    return b:cyfolds_foldlevel_array[a:lnum-1]
 endfunction
-
 
 function! DeleteBufferCache(buffer_num)
 " Free the cache memory when a buffer is deleted.

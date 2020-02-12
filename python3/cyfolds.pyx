@@ -118,7 +118,6 @@ foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Foldlevel values, by buffer n
 config_var_settings: (cy.int, cy.int, cy.int, cy.int) = (-2, -2, -2, -2)
 
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
-foldfun_calls: cy.int = 0 # Global counting the num of calls to get_foldlevel (debugging).
 
 fold_keywords_matcher = None # Global later set to a compiled regex that matches keywords.
 default_fold_keywords: str = "class,def,cdef,cpdef,async def"
@@ -133,64 +132,62 @@ lines_of_fun_and_class_docstrings: cy.int = -1
 hash_for_changes: cy.int = -1
 cur_undo_sequence: cy.int = -1
 
-try: # See if in Neovim.
-    vim_eval = vim.api.eval
-    vim_command = vim.api.command
-    def vim_current_buffer():
-        return vim.api.get_current_buf()
-except AttributeError: # No, in regular Vim.
-    vim_eval = vim.eval
-    vim_command = vim.command
-    def vim_current_buffer():
-        return vim.current.buffer
+if not TESTING:
+    try: # See if in Neovim.
+        vim_eval = vim.api.eval
+        vim_command = vim.api.command
+        def vim_current_buffer():
+            return vim.api.get_current_buf()
+    except AttributeError: # No, in regular Vim.
+        vim_eval = vim.eval
+        vim_command = vim.command
+        def vim_current_buffer():
+            return vim.current.buffer
 
 #
 # The main routines called from vim.
 #
 
-def call_get_foldlevel():
-    """Set up the necessary Vim variable values and call `get_foldlevel`.  This
-    is the main routine that is called from Vim.  The global Vim value
-    `g:cyfolds_pyfoldlevel` is set to the return value so Vim can access it
-    after the call.
+def call_get_foldlevels():
+    """Set up the necessary Vim variable values and call `get_foldlevels`.
+    This is the main routine that is called from Vim.  The Vim array
+    `b:cyfolds_foldlevel_array` is set to hold the computed foldlevels so Vim
+    can access them after the call.  This function is only called from Vim once
+    per fold update, when the line number is 1.
 
-    The separation from `get_foldlevel` allows `get_foldlevel` to be a `cdef`
+    The separation from `get_foldlevels` allows `get_foldlevels` to be a `cdef`
     function.  Putting it here rather than in `python.vim` cythonizes the
     argument-getting commands, reducing some overhead."""
     global shiftwidth, foldnestmax, cur_buffer_num, lines_of_module_docstrings
     global lines_of_fun_and_class_docstrings, hash_for_changes, cur_undo_sequence
 
     lnum: cy.int = int(vim_eval("a:lnum"))
-    if lnum == 1: # Vim calls the foldlevel function in sequence, over the whole file.
-       shiftwidth = int(vim_eval("&shiftwidth"))
-       foldnestmax = int(vim_eval("&foldnestmax"))
-       cur_buffer_num = int(vim_eval("bufnr('%')"))
-       lines_of_module_docstrings = int(vim_eval("g:cyfolds_lines_of_module_docstrings"))
-       lines_of_fun_and_class_docstrings = int(vim_eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
+    shiftwidth = int(vim_eval("&shiftwidth"))
+    foldnestmax = int(vim_eval("&foldnestmax"))
+    cur_buffer_num = int(vim_eval("bufnr('%')"))
+    lines_of_module_docstrings = int(vim_eval("g:cyfolds_lines_of_module_docstrings"))
+    lines_of_fun_and_class_docstrings = int(vim_eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
 
-       hash_for_changes = int(vim_eval("g:cyfolds_hash_for_changes"))
-       if hash_for_changes:
-           cur_undo_sequence = -1 # The value -1 is used like None here.
-       else:
-           # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
-           cur_undo_sequence = int(vim_eval("undotree().seq_cur"))
+    hash_for_changes = int(vim_eval("g:cyfolds_hash_for_changes"))
+    if hash_for_changes:
+        cur_undo_sequence = -1 # The value -1 is used like None here.
+    else:
+        # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
+        cur_undo_sequence = int(vim_eval("undotree().seq_cur"))
 
-    # Call the Cython function to do the actual computation (which just returns cached
-    # values if the buffer has not changed).
-    computed_foldlevel: cy.int = get_foldlevel(lnum, cur_buffer_num, cur_undo_sequence,
-                                               foldnestmax, shiftwidth, lines_of_module_docstrings,
-                                               lines_of_fun_and_class_docstrings)
-
-    # Set the return value as a global vim variable, to pass it back to vim.
-    vim_command("let g:cyfolds_pyfoldlevel = {}".format(computed_foldlevel))
+    # Call the Cython function to do the actual computation (which leaves the values in
+    # b:cyfolds_foldlevel_array unchanged if the buffer has not changed).
+    computed_foldlevel: cy.int = get_foldlevels(lnum, cur_buffer_num, cur_undo_sequence,
+                                                foldnestmax, shiftwidth, lines_of_module_docstrings,
+                                                lines_of_fun_and_class_docstrings)
 
 
-cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
-                          cur_undo_sequence:cy.int=-1,
-                          foldnestmax:cy.int=20, shiftwidth:cy.int=4,
-                          lines_of_module_docstrings:cy.int=-1,
-                          lines_of_fun_and_class_docstrings:cy.int=-1,
-                          test_buffer: object = None):
+cpdef cy.int get_foldlevels(lnum: cy.int, cur_buffer_num: cy.int,
+                           cur_undo_sequence:cy.int=-1,
+                           foldnestmax:cy.int=20, shiftwidth:cy.int=4,
+                           lines_of_module_docstrings:cy.int=-1,
+                           lines_of_fun_and_class_docstrings:cy.int=-1,
+                           test_buffer: object = None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that
     like Vim this function expects `lnum` to be numbered from 1 rather than
     from zero.  The `test_buffer` parameter is for passing in a mock of the
@@ -202,17 +199,16 @@ cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
     The -1 value for cur_undo_sequence represents a `None` value, and means to use
     hashing instead for dirty-cache change detection."""
     # This function is cpdef instead of cdef only because some vim-mocking debugging
-    # code (run_with_mocked_vim) expects to be able to call it directly.
+    # code (run_with_mocked_vim) expects to be able to call it directly.  This function
+    # is called from testing routine so parameters can be modified by passing in args.
     # Be SURE all int args passed to this function have been converted from strings.
-    global recalcs, foldfun_calls # Debugging counts, persistent.
+    global recalcs # Debugging counts, persistent.
     global config_var_settings
     if fold_keywords_matcher is None:
         setup_regex_pattern()
     new_config_var_settings: (cy.int, cy.int, cy.int, cy.int)
     new_config_var_settings = (foldnestmax, shiftwidth, lines_of_module_docstrings,
                                lines_of_fun_and_class_docstrings)
-
-    lnum -= 1 # Compensate for different numbering convention, vim vs. Python.
 
     dirty_cache: bint
     if USE_CACHING:
@@ -239,7 +235,7 @@ cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
     else: # Don't use caching; this is slow, so only for testing and debugging.
         dirty_cache = True
         print(" buffer_state_digest_dict=", buffer_state_digest_dict[cur_buffer_num],
-            " dirty=", dirty_cache, " calls=", foldfun_calls, " cur_buffer_num=",
+            " dirty=", dirty_cache, " cur_buffer_num=",
             cur_buffer_num, type(cur_buffer_num), sep="")
 
     if dirty_cache:
@@ -249,6 +245,7 @@ cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
             vim_buffer_lines = vim_current_buffer()
         else:
             vim_buffer_lines = test_buffer
+
         # Get a new foldlevel_cache list and recalculate all the foldlevels.
         new_cache_list: List[cy.int]
         new_cache_list = [0] * len(vim_buffer_lines)
@@ -258,9 +255,16 @@ cpdef cy.int get_foldlevel(lnum: cy.int, cur_buffer_num: cy.int,
                              lines_of_fun_and_class_docstrings)
         recalcs += 1 # Info for debugging.
 
-    foldlevel: cy.int = foldlevel_cache[cur_buffer_num][lnum]
+        if not TESTING:
+            foldlevel_strings = ["{}".format(i) for i in foldlevel_cache[cur_buffer_num]]
+            joined_foldlevel_strings = ",".join(foldlevel_strings)
+            vim_set_array_command = "let b:cyfolds_foldlevel_array = [{}]".format(joined_foldlevel_strings)
+            vim_command(vim_set_array_command)
+
+    # This return value is ONLY used in the mocking test function.  The actual Vim code uses
+    # the array of values b:cyfolds_foldlevel_array.
+    foldlevel: cy.int = foldlevel_cache[cur_buffer_num][lnum-1]
     #foldlevel = min(foldlevel, foldnestmax) # Not currently implemented.
-    foldfun_calls += 1 # Info for debugging.
     return foldlevel
 
 #

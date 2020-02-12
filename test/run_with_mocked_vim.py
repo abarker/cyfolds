@@ -25,7 +25,7 @@ import sys
 sys.path.insert(1,"../python3")
 
 import cyfolds
-from cyfolds import get_foldlevel, setup_regex_pattern
+from cyfolds import get_foldlevels, setup_regex_pattern
 
 setup_regex_pattern()
 
@@ -47,9 +47,9 @@ x = "xxx
      yy"
 '''
 
-# Note the get_foldlevel fun is passed to vim, which numbers lines from 1.
+# Note the get_foldlevels fun is passed to vim, which numbers lines from 1.
 # BUT the vim/python buffer vim.current.buffer IS indexed from zero.
-# For that reason the prints of lines below do not match the get_foldlevel calls.
+# For that reason the prints of lines below do not match the get_foldlevels calls.
 
 def run_for_test_string():
     print()
@@ -57,7 +57,7 @@ def run_for_test_string():
 
     for i in range(1,15):
         print(lines[i-1], end="")
-        flevel = get_foldlevel(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
+        flevel = get_foldlevels(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
                                foldnestmax=20, shiftwidth=4,
                                lines_of_module_docstrings=-1,
                                lines_of_fun_and_class_docstrings=-1,
@@ -65,7 +65,7 @@ def run_for_test_string():
         print("\t\t#", flevel)
 
 def print_results_for_file(filename):
-    """Run the get_foldlevel calculator on the file and print the results."""
+    """Run the get_foldlevels calculator on the file and print the results."""
     print()
     print("="*5, filename, "="*19)
     print()
@@ -76,7 +76,7 @@ def print_results_for_file(filename):
     test_code = test_code.splitlines()
 
     for lnum in range(1,len(test_code)+1):
-        flevel = get_foldlevel(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
+        flevel = get_foldlevels(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
                                foldnestmax=20, shiftwidth=4,
                                lines_of_module_docstrings=-1,
                                lines_of_fun_and_class_docstrings=-1,
@@ -94,7 +94,7 @@ def get_fold_list(filename, writefile=""):
 
     fold_list = []
     for lnum in range(1,len(test_code)+1):
-        flevel = get_foldlevel(lnum,
+        flevel = get_foldlevels(lnum,
                                cur_buffer_num=1,
                                cur_undo_sequence=-1,
                                foldnestmax=20,
