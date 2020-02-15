@@ -112,8 +112,9 @@ Cyfolds adds two new key bindings:
   updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
   which reset the open/closed states of folds according to ``foldlevel``.)
   
-  This command sets ``foldenable`` for the buffer if it is not already set.
-  The key sequence is mapped to the function call ``CyfoldsForceFoldUpdate()``.
+  The ``zuz`` command sets ``foldenable`` for the buffer if it is not already
+  set.  The key sequence is mapped to the function call
+  ``CyfoldsForceFoldUpdate()``.
 
 * The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
   and ``manual``.  By default Cyfolds starts with the foldmethod set to manual.
@@ -129,7 +130,7 @@ Cyfolds adds two new key bindings:
   small but noticeable delay in quickly moving in and out of insert mode,
   depending on the editing speed and the computer's speed.
   
-  This command sets ``foldenable`` for the buffer if it is not already set.
+  The ``z,`` command sets ``foldenable`` for the buffer if it is not already set.
   The key sequence is mapped to the function call
   ``CyfoldsToggleManualFolds()``.
 
@@ -297,8 +298,8 @@ These are the ``.vimrc`` settings I'm currently using:
    "set foldmethod=manual " Set for other file types if desired; Cyfolds ignores it for Python.
 
 Sometimes opening visible folds with a higher fold level can take several
-applications of the ``zo`` or ``za`` command.  To force such folds to open or
-close immediately I define a fold-toggling function and bind it to the
+applications of the builtin ``zo`` or ``za`` commands.  To force such folds to
+open or close immediately I define a fold-toggling function and bind it to the
 normal-mode space bar key (alternately, ``za`` could be remapped):
 
 .. code-block:: vim
