@@ -5,10 +5,10 @@ Cyfolds
 
 Cyfolds is a Vim plugin to calculate syntax-aware folds for Python files.
 While some Python-folding plugins aim to fold as much text as possible, Cyfolds
-tried to keep some context around the folds.  In particular, the full
-function/class parameter list is always left unfolded and the function/class
-docstrings can optionally be left fully or partially unfolded.  This gives
-something like an API view of the code.
+retains some context around the folds.  In particular, the full function/class
+parameter list is always left unfolded and the function/class docstrings can
+optionally be left fully or partially unfolded.  This gives something like an
+API view of the code.
 
 The plugin is written in Cython and compiles to optimized C code for fast
 performance.  The full file is parsed to find the syntax, so no heuristics are
@@ -40,8 +40,8 @@ Installation
 ------------
 
 Cyfolds requires a Vim that is compiled with Python 3 support and timer
-support.  It has currently only been compiled and tested on Ubuntu and Mint
-systems, with Vim versions 8.0 and 7.4, respectively.
+support.  It has currently only been compiled and tested on Vim 8.0 and Neovim
+0.2.2 on Ubuntu Linux and Vim 7.4 on Mint Linux.
 
 1. When using a plugin manager such as pathogen just clone this GitHub repo
    into the ``bundle`` directory of your ``.vim`` directory.
