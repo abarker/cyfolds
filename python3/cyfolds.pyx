@@ -183,11 +183,11 @@ def call_get_foldlevels():
 
 
 cpdef cy.int get_foldlevels(lnum: cy.int, cur_buffer_num: cy.int,
-                           cur_undo_sequence:cy.int=-1,
-                           foldnestmax:cy.int=20, shiftwidth:cy.int=4,
-                           lines_of_module_docstrings:cy.int=-1,
-                           lines_of_fun_and_class_docstrings:cy.int=-1,
-                           test_buffer: object = None):
+                            cur_undo_sequence:cy.int=-1,
+                            foldnestmax:cy.int=20, shiftwidth:cy.int=4,
+                            lines_of_module_docstrings:cy.int=-1,
+                            lines_of_fun_and_class_docstrings:cy.int=-1,
+                            test_buffer: object = None):
     """Recalculate all the fold levels for line `lnum` and greater.  Note that
     like Vim this function expects `lnum` to be numbered from 1 rather than
     from zero.  The `test_buffer` parameter is for passing in a mock of the
@@ -332,6 +332,7 @@ cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
     matchobject = fold_keywords_matcher.match(line, indent_spaces,)
                                                     #indent_spaces+max_pat_len)
     return True if matchobject else False
+
 
 cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],
                                   start_line_num: cy.int, foldlevel_value: cy.int):
