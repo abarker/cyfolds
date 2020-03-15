@@ -25,7 +25,7 @@ endif
 let g:loaded_cyfolds = 1
 
 let b:undo_ftplugin = "setl foldmethod< foldtext< foldexpr< foldenable< ofu<"
-                  \ . "| unlet b:match_ignorecase b:match_words b:suppress_insert_mode_switching"
+                  \ . "| unlet! b:match_ignorecase b:match_words b:suppress_insert_mode_switching"
                   \ . " b:insert_saved_foldmethod b:update_saved_foldmethod"
 
 " What is the overhead of calling Python from Vim?  The cached foldlevel
