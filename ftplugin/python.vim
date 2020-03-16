@@ -25,21 +25,9 @@ endif
 let g:loaded_cyfolds = 1
 
 let b:undo_ftplugin = "setl foldmethod< foldtext< foldexpr< foldenable< ofu<"
-                  \ . "| unlet b:match_ignorecase b:match_words b:suppress_insert_mode_switching"
-                  \ . " b:insert_saved_foldmethod b:update_saved_foldmethod"
-
-" What is the overhead of calling Python from Vim?  The cached foldlevel
-" values could be stored in a Vim list, which would eliminate the need to call
-" Python except to fill the list on dirty cache.  Would that make any
-" significant difference in speed?  Dirty cache detection would necessarily
-" need to be via undotree data.
-"
-" See vim.List in :h python-bindeval-objects
-" Maybe something like
-"    cyfolds_foldlevel_cache = vim.bindeval('g:cyfolds_foldlevel_cache')
-"
-" Downside is bindeval is only in newer Vims, and apparently not
-" compatible with neovim: https://github.com/neovim/neovim/issues/1898
+                   \ . "| unlet! b:cyfolds_suppress_insert_mode_switching"
+                   \ . " b:cyfolds_insert_saved_foldmethod b:cyfolds_update_saved_foldmethod"
+                   \ . " b:cyfolds_foldlevel_array"
 
 " ==============================================================================
 " ==== Initialization. =========================================================
@@ -99,7 +87,7 @@ function! CyfoldsBufEnterInit()
     nnoremap <buffer> <silent> z, :call CyfoldsToggleManualFolds()<CR>
 
     " Initialize variables.
-    let b:suppress_insert_mode_switching = 0
+    let b:cyfolds_suppress_insert_mode_switching = 0
 
     " Start with the chosen foldmethod.
     if g:cyfolds_start_in_manual_method == 1 && &foldmethod != 'manual'
@@ -178,10 +166,10 @@ augroup END
 augroup cyfolds_unset_folding_in_insert_mode
     autocmd!
     "autocmd InsertEnter *.py,*.pyx,*.pxd setlocal foldmethod=marker " Bad: opens all folds.
-    autocmd InsertEnter *.py,*.pyx,*.pxd if b:suppress_insert_mode_switching == 0 | 
-                \ let b:insert_saved_foldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
-    autocmd InsertLeave *.py,*.pyx,*.pxd if b:suppress_insert_mode_switching == 0 |
-                \ let &l:foldmethod = b:insert_saved_foldmethod  |
+    autocmd InsertEnter *.py,*.pyx,*.pxd if b:cyfolds_suppress_insert_mode_switching == 0 | 
+                \ let b:cyfolds_insert_saved_foldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
+    autocmd InsertLeave *.py,*.pyx,*.pxd if b:cyfolds_suppress_insert_mode_switching == 0 |
+                \ let &l:foldmethod = b:cyfolds_insert_saved_foldmethod  |
                 \ if g:cyfolds_fix_syntax_highlighting_on_update | call FixSyntaxHighlight() | endif |
                 \ endif
 augroup END
@@ -193,7 +181,7 @@ augroup END
 
 function! SetManual(timer)
     set foldmethod=manual
-    "let timer=timer_start(s:timer_wait, { timer -> execute("let &l:foldmethod = b:update_saved_foldmethod") })
+    "let timer=timer_start(s:timer_wait, { timer -> execute("let &l:foldmethod = b:cyfolds_update_saved_foldmethod") })
     "let timer=timer_start(s:timer_wait, { timer -> execute("set foldmethod=manual") })
 endfunction
 
@@ -213,11 +201,11 @@ function! CyfoldsForceFoldUpdate()
     " Force a fold update.  Unlike zx and zX this does not change the
     " open/closed state of any of the folds.  Can be mapped to a key like 'x,'
     setlocal foldenable
-    let b:update_saved_foldmethod = &l:foldmethod
+    let b:cyfolds_update_saved_foldmethod = &l:foldmethod
 
     setlocal foldmethod=manual
-    if b:update_saved_foldmethod != 'manual' " All methods except manual update folds.
-        let &l:foldmethod = b:update_saved_foldmethod
+    if b:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
+        let &l:foldmethod = b:cyfolds_update_saved_foldmethod
     else
         setlocal foldmethod=expr
         " I had restore to manual mode with a delayed timer command in order
