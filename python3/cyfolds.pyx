@@ -547,9 +547,10 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
 
             # Strings.
             elif ch == '"' and not char_is_escaped:
-                if i + 2 < line_len and line[i+1] == '"' and line[i+2] == '"':
+                if (i + 2 < line_len and line[i+1] == '"' and line[i+2] == '"'
+                        and not in_double_quote_string): # Note """ can be concat like " ""
                     if in_double_quote_docstring or not in_string:
-                        if in_string:
+                        if in_single_quote_docstring or in_double_quote_docstring:
                             ends_with_triple_quote = True # Provisional; may toggle off.
                         elif ((i == indent_spaces or # Note in_string is false here.
                                i == indent_spaces + 1 and line[indent_spaces] == "r")
@@ -562,9 +563,10 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                     in_double_quote_string = not in_double_quote_string
                 continue
             elif ch == "'" and not char_is_escaped:
-                if i + 2 < line_len and line[i+1] == "'" and line[i+2] == "'":
+                if (i + 2 < line_len and line[i+1] == "'" and line[i+2] == "'"
+                        and not in_single_quote_string): # Note ''' can be concat like ' ''
                     if in_single_quote_docstring or not in_string:
-                        if in_string:
+                        if in_single_quote_docstring or in_double_quote_docstring:
                             ends_with_triple_quote = True # Provisional; may toggle off.
                         elif ((i == indent_spaces or # Note in_string is false here.
                                i == indent_spaces + 1 and line[indent_spaces] == "r")
