@@ -88,8 +88,8 @@ from typing import List, Tuple, Set, Dict
 import re
 
 import cython as cy
-from cpython cimport bool # Use Python bool.
 from cython import bint # C int coerced to bool.
+#from cpython cimport bool # Use Python bool.
 #from cpython cimport int # Use Python int.
 
 TESTING: bint = False
@@ -313,24 +313,7 @@ cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
     """Boolean for whether fun or class def begins on the line."""
     if prev_nested or in_string:
         return False
-    ## This alternative seems to run at about the same speed as the regex.
-    ## Keyword list would need to be set up differently for it, though.
-    #use_startswith: bint = True
-    #if use_startswith:
-    #    keywords_list: List[str] = ["def ", "class "]
-    #    k: str
-    #    for k in keywords_list:
-    #        if line.startswith(k, indent_spaces):
-    #            return True
-    #            break
-    #    else:
-    #        return = False
-
-    #max_pat_len: cy.int = 9 # Largest keyword pattern ('async def: ').
-    # Passing a slice vs. setting the pos and endpos seems to make no real time diff.
-    #matchobject = re.match(fold_keywords_matcher, line[indent_spaces:indent_spaces+max_pat_len])
     matchobject = fold_keywords_matcher.match(line, indent_spaces,)
-                                                    #indent_spaces+max_pat_len)
     return True if matchobject else False
 
 
