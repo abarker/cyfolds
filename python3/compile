@@ -1,6 +1,9 @@
 #!/bin/bash
 
-python3 setup.py build_ext --inplace "$@" || exit 1
+PYTHON3_COMMAND="env python3" # Replace with path if you don't have env program.
+
+$PYTHON3_COMMAND setup.py build_ext --inplace "$@" || \
+      { echo "Error attempting to run setup.py with Python."; exit 1; }
 
 echo
 echo "Cleanup unneeded files:"

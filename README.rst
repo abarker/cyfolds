@@ -41,7 +41,8 @@ Installation
 
 Cyfolds requires a Vim that is compiled with Python 3 support and timer
 support.  It has currently only been compiled and tested on Vim 8.0 and Neovim
-0.2.2 on Ubuntu Linux and Vim 7.4 on Mint Linux.
+0.2.2 on Ubuntu Linux and Vim 7.4 on Mint Linux.  It should work with any
+recent Linux and Vim distribution, as well as on Windows with a recent Vim.
 
 1. When using a plugin manager such as pathogen just clone this GitHub repo
    into the ``bundle`` directory of your ``.vim`` directory.
@@ -64,13 +65,26 @@ support.  It has currently only been compiled and tested on Vim 8.0 and Neovim
 
    .. code-block:: bash
 
-      pip3 install cython setuptools --user --upgrade
+      python3 -m pip install cython setuptools --user --upgrade
 
-4. Now go to the cloned repo and into the ``python3`` directory.   Run the Bash
-   script ``compile`` located in that directory.  If you cannot run Bash
-   scripts, you can run ``python3 setup.py build_ext --inplace`` directly from
-   the command line.  To modify the compile options look in the `setup.py`
-   file.
+   Replace ``python3`` with whatever command you use to invoke Python 3.
+
+4. Now change directories and go to the cloned repo and into the ``python3``
+   subdirectory.   Run the Bash script named ``compile`` that is located in
+   that directory.  In Linux just using 
+   
+   .. code-block:: bash
+
+      ./compile
+      
+   should work.  If you cannot run Bash scripts, you can alternately run
+
+   .. code-block:: bash
+   
+      python3 setup.py build_ext --inplace
+      
+   directly from the command line To modify the compile options, look in the
+   ``setup.py`` file.
 
 The plugin is now ready to use in Vim.
 
