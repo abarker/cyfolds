@@ -70,20 +70,20 @@ recent Linux and Vim distribution, as well as on Windows with a recent Vim.
    Replace ``python3`` with whatever command you use to invoke Python 3.
 
 4. Now change directories and go to the cloned repo and into the ``python3``
-   subdirectory.   Run the Bash script named ``compile`` that is located in
-   that directory.  In Linux just using 
+   subdirectory.   Run the Python script named ``compile.py`` that is located
+   in that directory.  In Linux just using 
    
    .. code-block:: bash
 
-      ./compile
+      ./compile.py
       
-   should work.  If you cannot run Bash scripts, you can alternately run
+   should work.  You can alternately run
 
    .. code-block:: bash
    
       python3 setup.py build_ext --inplace
       
-   directly from the command line To modify the compile options, look in the
+   directly from the command line.  To modify the compile options, look in the
    ``setup.py`` file.
 
 The plugin is now ready to use in Vim.
