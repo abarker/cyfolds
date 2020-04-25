@@ -377,10 +377,11 @@ FastFolds
 
 FastFolds does not seem to interfere with Cyfolds and vice versa outside a
 Python buffer.  FastFolds with Cyfolds does introduce a very slight delay when
-opening and closing folds.  That is because it remaps the folding/unfolding
-keys to update the folds each time.  Disabling FastFolds for Python files
-eliminates this delay (but also the automatic fold updating on those fold
-commands).  The disabling command for a ``.vimrc`` is:
+opening and closing folds in Python buffers.  That is because it remaps the
+folding/unfolding keys to update the folds each time.  Disabling FastFolds for
+Python files eliminates this delay (but also the automatic fold updating on
+those fold commands).  The ``.vimrc`` command to disable FastFolds for Python
+files is:
 
 .. code-block:: vim
 
