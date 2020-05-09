@@ -132,20 +132,20 @@ Cyfolds adds two new key bindings:
 
 * The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
   and ``manual``.  By default Cyfolds starts with the foldmethod set to manual.
-  With expr method folds are automatically updated upon leaving insert mode.
-  With manual method there is no automatic fold updating; updating must be done
-  explicitly, e.g. with ``zuz``.  Folds are automatically updated upon toggling
-  to the ``expr`` method, but not on toggling to the ``manual`` method.  The
-  existing folds and their states are left unchanged except for changes due to
-  the update operation itself.
+  With the expr foldmethod folds are automatically updated upon leaving insert
+  mode.  With the manual foldmethod there is no automatic fold updating;
+  updating must be done explicitly, e.g. with ``zuz``.  Folds are automatically
+  updated upon toggling to the ``expr`` method, but not on toggling to the
+  ``manual`` method.  The existing folds and their states are left unchanged
+  except for changes due to the update operation itself.
   
   The manual foldmethod is best for doing heavy, fast editing with a lot of
   switching in and out of insert mode.  With the expr method there can be a
   small but noticeable delay in quickly moving in and out of insert mode,
   depending on the editing speed and the computer's speed.
   
-  The ``z,`` command sets ``foldenable`` for the buffer if it is not already set.
-  The key sequence is mapped to the function call
+  The ``z,`` command sets ``foldenable`` for the buffer if it is not already
+  set.  The key sequence is mapped to the function call
   ``CyfoldsToggleManualFolds()``.
 
 Customizable settings
