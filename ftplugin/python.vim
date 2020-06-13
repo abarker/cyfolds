@@ -26,7 +26,8 @@ let g:loaded_cyfolds = 1
 
 let b:undo_ftplugin = "setl foldmethod< foldtext< foldexpr< foldenable< ofu<"
                    \ . "| unlet! b:cyfolds_suppress_insert_mode_switching"
-                   \ . " b:cyfolds_insert_saved_foldmethod b:cyfolds_update_saved_foldmethod"
+                   \ . " w:cyfolds_update_saved_foldmethod"
+                   \ . " w:cyfolds_insert_saved_foldmethod"
                    \ . " b:cyfolds_foldlevel_array"
 
 " ==============================================================================
@@ -176,12 +177,18 @@ endfunction
 " ==============================================================================
 
 augroup cyfolds_unset_folding_in_insert_mode
+    " Note you can stay in insert mode when changing windows or buffer (like with mouse).
+    " Alternatives to use are `windo` and maybe `bufdo`.
+    " See https://vim.fandom.com/wiki/Keep_folds_closed_while_inserting_text
     autocmd!
     "autocmd InsertEnter *.py,*.pyx,*.pxd setlocal foldmethod=marker " Bad: opens all folds.
-    autocmd InsertEnter *.py,*.pyx,*.pxd if b:cyfolds_suppress_insert_mode_switching == 0 | 
-                \ let b:cyfolds_insert_saved_foldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
-    autocmd InsertLeave *.py,*.pyx,*.pxd if b:cyfolds_suppress_insert_mode_switching == 0 |
-                \ let &l:foldmethod = b:cyfolds_insert_saved_foldmethod  |
+    autocmd InsertEnter *.py,*.pyx,*.pxd 
+                \ if !exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 | 
+                \ let w:cyfolds_insert_saved_foldmethod = &l:foldmethod | setlocal foldmethod=manual | endif
+    autocmd InsertLeave,WinLeave *.py,*.pyx,*.pxd
+                \ if exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 |
+                \ let &l:foldmethod = w:cyfolds_insert_saved_foldmethod  |
+                \ unlet w:cyfolds_insert_saved_foldmethod |
                 \ if g:cyfolds_fix_syntax_highlighting_on_update | call FixSyntaxHighlight() | endif |
                 \ endif
 augroup END
@@ -193,7 +200,7 @@ augroup END
 
 function! SetManual(timer)
     set foldmethod=manual
-    "let timer=timer_start(s:timer_wait, { timer -> execute("let &l:foldmethod = b:cyfolds_update_saved_foldmethod") })
+    "let timer=timer_start(s:timer_wait, { timer -> execute("let &l:foldmethod = w:cyfolds_update_saved_foldmethod") })
     "let timer=timer_start(s:timer_wait, { timer -> execute("set foldmethod=manual") })
 endfunction
 
@@ -213,11 +220,11 @@ function! CyfoldsForceFoldUpdate()
     " Force a fold update.  Unlike zx and zX this does not change the
     " open/closed state of any of the folds.  Can be mapped to a key like 'x,'
     setlocal foldenable
-    let b:cyfolds_update_saved_foldmethod = &l:foldmethod
+    let w:cyfolds_update_saved_foldmethod = &l:foldmethod
 
     setlocal foldmethod=manual
-    if b:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
-        let &l:foldmethod = b:cyfolds_update_saved_foldmethod
+    if w:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
+        let &l:foldmethod = w:cyfolds_update_saved_foldmethod
     else
         setlocal foldmethod=expr
         " I had restore to manual mode with a delayed timer command in order
