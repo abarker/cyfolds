@@ -41,10 +41,6 @@ else
     let s:vimhome = $HOME."/.vim"
 endif
 
-if !exists("g:cyfolds_hash_for_changes")
-    let g:cyfolds_hash_for_changes = 0
-endif
-
 if !exists("g:cyfolds_fold_keywords")
     let g:cyfolds_fold_keywords = "class,def,async def"
 endif

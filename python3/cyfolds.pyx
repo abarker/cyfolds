@@ -55,14 +55,10 @@ The actual ordering of the states in the file is in reverse, so that
 states do not trigger next states until the next loop (line) through.
 
 Foldlevel values are calculated for all the lines during the pass through the
-buffer and are saved in `foldlevel_cache`.  When `foldlines` is called a hash
-is first computed over all the lines in the buffer.  This hash is compared
-against a saved hash value for the previous buffer.  If they are the same then
-the cached foldlevel value for the line is returned.  Otherwise another pass is
-made through the file, recomputing the foldlevels.  This assumes that the time
-to compute the hash is less than the time to recompute the data up to the line
-needed.  Empirically, this does significantly speed up the processing,
-especially on startup.
+buffer and are saved in `foldlevel_cache`.  When `foldlines` is called the
+routine first checks if the buffer has changed (according to `b:changedtick`).
+If not then the cached foldlevel value for the line is returned.  Otherwise
+another pass is made through the file, recomputing the foldlevels.
 
 """
 #==============================================================================
@@ -112,7 +108,7 @@ if TESTING:
 DEBUG: bint = False
 USE_CACHING: bint = True
 
-buffer_state_digest_dict: Dict[cy.int, cy.int] = {} # Digested states, by buffer num.
+cur_change_num_dict: Dict[cy.int, cy.int] = {} # Buffer change indicators, by buffer num.
 foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Foldlevel values, by buffer num.
 # Config values are saved since the cache is dirtied if they change.
 config_var_settings: (cy.int, cy.int, cy.int, cy.int) = (-2, -2, -2, -2)
@@ -129,8 +125,7 @@ foldnestmax: cy.int = -1
 cur_buffer_num: cy.int = -1
 lines_of_module_docstrings: cy.int = -1
 lines_of_fun_and_class_docstrings: cy.int = -1
-hash_for_changes: cy.int = -1
-cur_undo_sequence: cy.int = -1
+cur_change_num: cy.int = -1
 
 if not TESTING:
     try: # See if in Neovim.
@@ -159,7 +154,7 @@ def call_get_foldlevels():
     function.  Putting it here rather than in `python.vim` cythonizes the
     argument-getting commands, reducing some overhead."""
     global shiftwidth, foldnestmax, cur_buffer_num, lines_of_module_docstrings
-    global lines_of_fun_and_class_docstrings, hash_for_changes, cur_undo_sequence
+    global lines_of_fun_and_class_docstrings, cur_change_num
 
     lnum: cy.int = int(vim_eval("a:lnum"))
     shiftwidth = int(vim_eval("&shiftwidth"))
@@ -168,22 +163,18 @@ def call_get_foldlevels():
     lines_of_module_docstrings = int(vim_eval("g:cyfolds_lines_of_module_docstrings"))
     lines_of_fun_and_class_docstrings = int(vim_eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
 
-    hash_for_changes = int(vim_eval("g:cyfolds_hash_for_changes"))
-    if hash_for_changes:
-        cur_undo_sequence = -1 # The value -1 is used like None here.
-    else:
-        # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
-        cur_undo_sequence = int(vim_eval("undotree().seq_cur"))
+    # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
+    # cur_change_num = int(vim_eval("undotree().seq_cur"))
+    cur_change_num = int(vim_eval("b:changedtick")) # No longer use undotree.
 
     # Call the Cython function to do the actual computation (which leaves the values in
     # b:cyfolds_foldlevel_array unchanged if the buffer has not changed).
-    computed_foldlevel: cy.int = get_foldlevels(lnum, cur_buffer_num, cur_undo_sequence,
-                                                foldnestmax, shiftwidth, lines_of_module_docstrings,
-                                                lines_of_fun_and_class_docstrings)
+    get_foldlevels(lnum, cur_buffer_num, cur_change_num, foldnestmax, shiftwidth,
+                   lines_of_module_docstrings, lines_of_fun_and_class_docstrings)
 
 
 cpdef cy.int get_foldlevels(lnum: cy.int, cur_buffer_num: cy.int,
-                            cur_undo_sequence:cy.int=-1,
+                            cur_change_num:cy.int=-1,
                             foldnestmax:cy.int=20, shiftwidth:cy.int=4,
                             lines_of_module_docstrings:cy.int=-1,
                             lines_of_fun_and_class_docstrings:cy.int=-1,
@@ -194,10 +185,10 @@ cpdef cy.int get_foldlevels(lnum: cy.int, cur_buffer_num: cy.int,
     `vim.current.buffer` object in debugging and testing.
 
     Values are cached and cached values are returned if the buffer-change
-    digest does not indicate changes.
+    indicator number `cur_change_num` is unchanged.
 
-    The -1 value for cur_undo_sequence represents a `None` value, and means to use
-    hashing instead for dirty-cache change detection."""
+    The return value is ONLY used in the mocking test function.  The actual Vim
+    code uses the array of values set in `b:cyfolds_foldlevel_array`."""
     # This function is cpdef instead of cdef only because some vim-mocking debugging
     # code (run_with_mocked_vim) expects to be able to call it directly.  This function
     # is called from testing routine so parameters can be modified by passing in args.
@@ -217,26 +208,16 @@ cpdef cy.int get_foldlevels(lnum: cy.int, cur_buffer_num: cy.int,
             dirty_cache = True
             config_var_settings = new_config_var_settings
         else:
-            if cur_undo_sequence == -1: # -1 value means use buffer hash, not undotree.
-                if not TESTING:
-                    vim_buffer_lines = vim_current_buffer()
-                else:
-                    vim_buffer_lines = test_buffer
-                # Convert the buffer into a tuple of strings, for hashing.
-                #buffer_lines = tuple(i for i in vim_buffer_lines) # Gives cython closure crash error.
-                buffer_lines = tuple(vim_buffer_lines) # DEBUG, replace above to get cpdef not def.
-                buffer_state_digest: cy.int = hash(buffer_lines) # NOTE: really Py_ssize_t
-            else: # Use the current undo sequence, from the undotree.
-                buffer_state_digest: cy.int = cur_undo_sequence
-
-            dirty_cache = buffer_state_digest != buffer_state_digest_dict.get(
+            dirty_cache = cur_change_num != cur_change_num_dict.get(
                                                                  cur_buffer_num, -1)
-            buffer_state_digest_dict[cur_buffer_num] = buffer_state_digest
+            # Note we could alternately just save these vals in a Vim local buffer var.
+            cur_change_num_dict[cur_buffer_num] = cur_change_num
     else: # Don't use caching; this is slow, so only for testing and debugging.
         dirty_cache = True
-        print(" buffer_state_digest_dict=", buffer_state_digest_dict[cur_buffer_num],
-            " dirty=", dirty_cache, " cur_buffer_num=",
-            cur_buffer_num, type(cur_buffer_num), sep="")
+        config_var_settings = new_config_var_settings
+        #print(" cur_change_num_dict=", cur_change_num_dict[cur_buffer_num],
+        #    " dirty=", dirty_cache, " cur_buffer_num=",
+        #    cur_buffer_num, type(cur_buffer_num), sep="")
 
     if dirty_cache:
         # Cache is dirty, so all foldlevels need to be recalculated.  Note that this is
@@ -276,8 +257,8 @@ def delete_buffer_cache(buffer_num: cy.int):
     This is meant to be called when the buffer is closed, to avoid wasting
     memory."""
     # This function is getting called twice for some reason, so check key before del.
-    if buffer_num in buffer_state_digest_dict:
-        del buffer_state_digest_dict[buffer_num]
+    if buffer_num in cur_change_num_dict:
+        del cur_change_num_dict[buffer_num]
     if buffer_num in foldlevel_cache:
         del foldlevel_cache[buffer_num]
 

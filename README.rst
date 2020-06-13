@@ -36,6 +36,10 @@ changes in the respective buffer since the last call.  See the Cython code file
 for more details of the algorithm.  The plugin is only loaded when a Python
 file is opened.
 
+Cyfolds turns off folding in insert mode and restores it on leaving insert
+mode.  This is because in insert mode Vim updates the folds on every character,
+which is slow and not really needed.
+
 Installation
 ------------
 
@@ -180,7 +184,7 @@ unfolded just under the opening statement.
 
 This list can be reset dynamically by passing the new list to the function
 ``CyfoldsSetFoldKeywords(keyword_str)``.  For the new setting to take effect
-some buffer change must occur (to dirty the foldlevel cache).
+some buffer change must also occur.
 
 Number of docstring lines left unfolded
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -251,19 +255,6 @@ Other settings
   .. code-block:: vim
 
      let cyfolds = 0
-
-* Cyfolds turns off folding in insert mode and restores it on leaving insert
-  mode.  This is because in insert mode Vim updates the folds on every
-  character, which is slow and not really needed.  Triggering updates after
-  inserts is also necessary for using the undotree to detect file changes.
-
-  There is an option to switch the change-detection method from undotree to a
-  Python hash of the buffer (though it is not recommended if the default method
-  is working):
-
-  .. code-block:: vim
-
-     let cyfolds_hash_for_changes = 1
 
 Sample settings
 ---------------
