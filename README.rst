@@ -38,14 +38,14 @@ file is opened.
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode Vim updates the folds on every character,
-which is slow and not really needed.
+which is slow and is not really needed.
 
 Installation
 ------------
 
 Cyfolds requires a Vim that is compiled with Python 3 support and timer
 support.  It has currently only been compiled and tested on Vim 8.0 and Neovim
-0.2.2 on Ubuntu Linux and Vim 7.4 on Mint Linux.  It should work with any
+0.2.2 on Ubuntu Linux and on Vim 7.4 on Mint Linux.  It should work with any
 recent Linux and Vim distribution, as well as on Windows with a recent Vim.
 
 1. When using a plugin manager such as pathogen just clone this GitHub repo
@@ -116,13 +116,13 @@ In addition to the usual Vim folding keys (see ``:help fold-commands`` in Vim),
 Cyfolds adds two new key bindings:
 
 * The ``zuz`` key sequence is used to force the folds to be updated.  (This is
-  the same as the FastFolds mapping, but only applies in Python code.)  With
-  ``foldmethod`` set to ``manual`` folds always need to be explicitly updated,
-  either with ``zuz`` or one of the Vim commands.  When ``foldmethod`` is set
-  to ``expr`` folds are updated after inserts but can still get messed up and
-  require updating (for example, when deleting characters with ``x`` or lines
-  with ``dd``, since those change events do not trigger Vim to update the
-  folds).
+  the same as the FastFolds mapping, but only applies in Python code.)  When
+  the ``foldmethod`` is set to ``manual`` folds always need to be explicitly
+  updated either with ``zuz`` or one of the Vim commands.  When the
+  ``foldmethod`` is set to ``expr`` folds are updated after inserts but can
+  still get messed up and require updating (for example, when deleting
+  characters with ``x`` or lines with ``dd``, since those change events do not
+  trigger Vim to update the folds).
   
   The ``zuz`` command updates all the folds, returning the folding method to
   whatever method it was set to before the command.  The states of the folds,
@@ -137,7 +137,7 @@ Cyfolds adds two new key bindings:
 * The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
   and ``manual``.  By default Cyfolds starts with the foldmethod set to manual.
   With the expr foldmethod folds are automatically updated upon leaving insert
-  mode.  With the manual foldmethod there is no automatic fold updating;
+  mode.  With the manual foldmethod there is no automatic fold updating; all
   updating must be done explicitly, e.g. with ``zuz``.  Folds are automatically
   updated upon toggling to the ``expr`` method, but not on toggling to the
   ``manual`` method.  The existing folds and their states are left unchanged
@@ -226,7 +226,7 @@ Other settings
      let cyfolds_no_initial_fold_calc = 1
  
   This setting is useful if you only sometimes use folds and do not want the
-  fold calculations to happen automatipcally (a very small slowdown on
+  fold calculations to happen automatically (a very small slowdown on
   startup).  This setting also causes Cyfolds to start with ``foldmethod`` set
   to ``manual``.  To then switch to using folding you need to explicitly force
   the folds to be updated, such as with ``zuz`` or ``z,``.
@@ -370,8 +370,8 @@ Python buffer.  FastFolds with Cyfolds does introduce a very slight delay when
 opening and closing folds in Python buffers.  That is because it remaps the
 folding/unfolding keys to update the folds each time.  Disabling FastFolds for
 Python files eliminates this delay (but also the automatic fold updating on
-those fold commands).  The ``.vimrc`` command to disable FastFolds for Python
-files is:
+those fold commands).  The ``.vimrc`` command to disable FastFolds only for
+Python files is:
 
 .. code-block:: vim
 
