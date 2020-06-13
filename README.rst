@@ -182,9 +182,8 @@ can be used.  The list of all such keywords in Python is:
 If a docstring appears immediately after any such definition it will remain
 unfolded just under the opening statement.
 
-This list can be reset dynamically by passing the new list to the function
-``CyfoldsSetFoldKeywords(keyword_str)``.  For the new setting to take effect
-some buffer change must also occur.
+This list can be reset dynamically (to the new values set in the global
+variable) by running ``:call CyfoldsUpdateFoldKeywords()``.
 
 Number of docstring lines left unfolded
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

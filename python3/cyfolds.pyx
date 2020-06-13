@@ -54,12 +54,6 @@ parameters spread over multiple lines and the text inside multiline docstrings.
 The actual ordering of the states in the file is in reverse, so that
 states do not trigger next states until the next loop (line) through.
 
-Foldlevel values are calculated for all the lines during the pass through the
-buffer and are saved in `foldlevel_cache`.  When `foldlines` is called the
-routine first checks if the buffer has changed (according to `b:changedtick`).
-If not then the cached foldlevel value for the line is returned.  Otherwise
-another pass is made through the file, recomputing the foldlevels.
-
 """
 #==============================================================================
 # This file is part of the Cyfolds package, Copyright (c) 2019 Allen Barker.
@@ -106,26 +100,12 @@ if TESTING:
 #
 
 DEBUG: bint = False
-USE_CACHING: bint = True
-
-cur_change_num_dict: Dict[cy.int, cy.int] = {} # Buffer change indicators, by buffer num.
-foldlevel_cache: Dict[cy.int, List[cy.int]] = {} # Foldlevel values, by buffer num.
-# Config values are saved since the cache is dirtied if they change.
-config_var_settings: (cy.int, cy.int, cy.int, cy.int) = (-2, -2, -2, -2)
+USE_CACHING: bint = False
 
 recalcs: cy.int = 0 # Global counting the number of recalculations (for debugging).
 
 fold_keywords_matcher = None # Global later set to a compiled regex that matches keywords.
 default_fold_keywords: str = "class,def,cdef,cpdef,async def"
-
-# Global variables used in `call_get_foldlevel`.  These are persistent in order
-# not to have to reset them from the vim object each time the function is called.
-shiftwidth: cy.int = -1
-foldnestmax: cy.int = -1
-cur_buffer_num: cy.int = -1
-lines_of_module_docstrings: cy.int = -1
-lines_of_fun_and_class_docstrings: cy.int = -1
-cur_change_num: cy.int = -1
 
 if not TESTING:
     try: # See if in Neovim.
@@ -148,44 +128,25 @@ def call_get_foldlevels():
     This is the main routine that is called from Vim.  The Vim array
     `b:cyfolds_foldlevel_array` is set to hold the computed foldlevels so Vim
     can access them after the call.  This function is only called from Vim once
-    per fold update, when the line number is 1.
-
-    The separation from `get_foldlevels` allows `get_foldlevels` to be a `cdef`
-    function.  Putting it here rather than in `python.vim` cythonizes the
-    argument-getting commands, reducing some overhead."""
-    global shiftwidth, foldnestmax, cur_buffer_num, lines_of_module_docstrings
-    global lines_of_fun_and_class_docstrings, cur_change_num
-
-    lnum: cy.int = int(vim_eval("a:lnum"))
+    per fold update, when the line number is 1."""
     shiftwidth = int(vim_eval("&shiftwidth"))
-    foldnestmax = int(vim_eval("&foldnestmax"))
-    cur_buffer_num = int(vim_eval("bufnr('%')"))
     lines_of_module_docstrings = int(vim_eval("g:cyfolds_lines_of_module_docstrings"))
     lines_of_fun_and_class_docstrings = int(vim_eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
 
-    # The undotree().seq_cur seems to be specific to the current buffer, fortunately.
-    # cur_change_num = int(vim_eval("undotree().seq_cur"))
-    cur_change_num = int(vim_eval("b:changedtick")) # No longer use undotree.
-
     # Call the Cython function to do the actual computation (which leaves the values in
-    # b:cyfolds_foldlevel_array unchanged if the buffer has not changed).
-    get_foldlevels(lnum, cur_buffer_num, cur_change_num, foldnestmax, shiftwidth,
-                   lines_of_module_docstrings, lines_of_fun_and_class_docstrings)
+    # the Vim variable `b:cyfolds_foldlevel_array`).
+    get_foldlevels(shiftwidth, lines_of_module_docstrings,
+                   lines_of_fun_and_class_docstrings)
 
 
-cpdef cy.int get_foldlevels(lnum: cy.int, cur_buffer_num: cy.int,
-                            cur_change_num:cy.int=-1,
-                            foldnestmax:cy.int=20, shiftwidth:cy.int=4,
-                            lines_of_module_docstrings:cy.int=-1,
-                            lines_of_fun_and_class_docstrings:cy.int=-1,
-                            test_buffer: object = None):
-    """Recalculate all the fold levels for line `lnum` and greater.  Note that
-    like Vim this function expects `lnum` to be numbered from 1 rather than
-    from zero.  The `test_buffer` parameter is for passing in a mock of the
-    `vim.current.buffer` object in debugging and testing.
+cpdef list get_foldlevels(shiftwidth:cy.int=4,
+                          lines_of_module_docstrings:cy.int=-1,
+                          lines_of_fun_and_class_docstrings:cy.int=-1,
+                          test_buffer: object = None):
 
-    Values are cached and cached values are returned if the buffer-change
-    indicator number `cur_change_num` is unchanged.
+    """Recalculate all the fold levels.  The `test_buffer` parameter is for
+    passing in a mock of the `vim.current.buffer` object in debugging and
+    testing.
 
     The return value is ONLY used in the mocking test function.  The actual Vim
     code uses the array of values set in `b:cyfolds_foldlevel_array`."""
@@ -193,74 +154,38 @@ cpdef cy.int get_foldlevels(lnum: cy.int, cur_buffer_num: cy.int,
     # code (run_with_mocked_vim) expects to be able to call it directly.  This function
     # is called from testing routine so parameters can be modified by passing in args.
     # Be SURE all int args passed to this function have been converted from strings.
+
     global recalcs # Debugging counts, persistent.
-    global config_var_settings
     if fold_keywords_matcher is None:
         setup_regex_pattern()
-    new_config_var_settings: (cy.int, cy.int, cy.int, cy.int)
-    new_config_var_settings = (foldnestmax, shiftwidth, lines_of_module_docstrings,
-                               lines_of_fun_and_class_docstrings)
 
-    dirty_cache: bint
-    if USE_CACHING:
-        if config_var_settings != new_config_var_settings:
-            # Cache is always dirty if config vars change; old foldlevels are invalid.
-            dirty_cache = True
-            config_var_settings = new_config_var_settings
-        else:
-            dirty_cache = cur_change_num != cur_change_num_dict.get(
-                                                                 cur_buffer_num, -1)
-            # Note we could alternately just save these vals in a Vim local buffer var.
-            cur_change_num_dict[cur_buffer_num] = cur_change_num
-    else: # Don't use caching; this is slow, so only for testing and debugging.
-        dirty_cache = True
-        config_var_settings = new_config_var_settings
-        #print(" cur_change_num_dict=", cur_change_num_dict[cur_buffer_num],
-        #    " dirty=", dirty_cache, " cur_buffer_num=",
-        #    cur_buffer_num, type(cur_buffer_num), sep="")
+    if not TESTING: # Not sure when buffer is transferred; do this only when needed.
+        vim_buffer_lines = vim_current_buffer()
+    else:
+        vim_buffer_lines = test_buffer
 
-    if dirty_cache:
-        # Cache is dirty, so all foldlevels need to be recalculated.  Note that this is
-        # the only time that the buffer `vim.current.buffer` is accessed from Python.
-        if not TESTING: # Not sure when buffer is transferred; do this only when needed.
-            vim_buffer_lines = vim_current_buffer()
-        else:
-            vim_buffer_lines = test_buffer
+    # Recalculate all the foldlevels.
+    flevel_list: List[cy.int]
+    flevel_list = [0] * len(vim_buffer_lines)
+    calculate_foldlevels(flevel_list, vim_buffer_lines, shiftwidth,
+                         lines_of_module_docstrings,
+                         lines_of_fun_and_class_docstrings)
+    recalcs += 1 # Info for debugging.
 
-        # Get a new foldlevel_cache list and recalculate all the foldlevels.
-        new_cache_list: List[cy.int]
-        new_cache_list = [0] * len(vim_buffer_lines)
-        foldlevel_cache[cur_buffer_num] = new_cache_list
-        calculate_foldlevels(new_cache_list, vim_buffer_lines, shiftwidth,
-                             lines_of_module_docstrings,
-                             lines_of_fun_and_class_docstrings)
-        recalcs += 1 # Info for debugging.
-
-        if not TESTING:
-            foldlevel_strings = ["{}".format(i) for i in foldlevel_cache[cur_buffer_num]]
-            joined_foldlevel_strings = ",".join(foldlevel_strings)
-            vim_set_array_command = "let b:cyfolds_foldlevel_array = [{}]".format(joined_foldlevel_strings)
-            vim_command(vim_set_array_command)
+    if not TESTING:
+        foldlevel_strings = ["{}".format(i) for i in flevel_list]
+        joined_foldlevel_strings = ",".join(foldlevel_strings)
+        vim_set_array_command = "let b:cyfolds_foldlevel_array = [{}]".format(
+                                                          joined_foldlevel_strings)
+        vim_command(vim_set_array_command)
 
     # This return value is ONLY used in the mocking test function.  The actual Vim code uses
     # the array of values b:cyfolds_foldlevel_array.
-    foldlevel: cy.int = foldlevel_cache[cur_buffer_num][lnum-1]
-    #foldlevel = min(foldlevel, foldnestmax) # Not currently implemented.
-    return foldlevel
+    return flevel_list
 
 #
 # Setup and shutdown routines.
 #
-
-def delete_buffer_cache(buffer_num: cy.int):
-    """Remove the saved cache information for the buffer with the given number.
-    This is meant to be called when the buffer is closed, to avoid wasting
-    memory."""
-    # This function is getting called twice for some reason, so check key before del.
-    if buffer_num in cur_change_num_dict:
-        del cur_change_num_dict[buffer_num]
-    if buffer_num in foldlevel_cache:
-        del foldlevel_cache[buffer_num]
 
 
 # This dict is used in setup_regex_pattern, below.
@@ -278,7 +203,6 @@ def setup_regex_pattern(fold_keywords_string: str=default_fold_keywords):
 
     keywords_list: List[str]
     keywords_list = fold_keywords_string.split(",")
-    k: str
     keywords_list = [keyword_pattern_dict.get(k, k + r"[\s\t]") for k in keywords_list]
     pattern_string: str = "|".join(keywords_list)
 
@@ -298,15 +222,15 @@ cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
     return True if matchobject else False
 
 
-cdef void replace_preceding_minus_five_foldlevels(foldlevel_cache: List[cy.int],
+cdef void replace_preceding_minus_five_foldlevels(foldlevel_list: List[cy.int],
                                   start_line_num: cy.int, foldlevel_value: cy.int):
     """Starting at index `start_line_num`, any immediately-preceding sequence of -5
     values is replaced by `foldlevel_value`."""
-    if not foldlevel_cache:
+    if not foldlevel_list:
         return
     lnum_loopback: cy.int = start_line_num
-    while lnum_loopback >= 0 and foldlevel_cache[lnum_loopback] == -5:
-        foldlevel_cache[lnum_loopback] = foldlevel_value
+    while lnum_loopback >= 0 and foldlevel_list[lnum_loopback] == -5:
+        foldlevel_list[lnum_loopback] = foldlevel_value
         lnum_loopback -= 1
 
 
@@ -375,7 +299,7 @@ cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
 # The main function for calculating foldlevels.
 #
 
-cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List[str],
+cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[str],
                                shiftwidth: cy.int, lines_of_module_docstrings:cy.int,
                                lines_of_fun_and_class_docstrings: cy.int):
     """Do the actual calculations and return the foldlevel."""
@@ -453,8 +377,8 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
         line_len: cy.int = len(line)
 
         # Go to first non-whitespce to find the indent level and identify empty strings.
-        i: cy.int = -1
         ch: str
+        i: cy.int
         for i in range(line_len):
             ch = line[i]
             if ch != " " and ch != "\t":
@@ -730,11 +654,11 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
                                                                  indent_spaces, shiftwidth)
 
         # Save the calculated foldlevel value in the cache.
-        foldlevel_cache[line_num] = foldlevel
+        foldlevel_list[line_num] = foldlevel
 
         # If foldlevel isn't -5, go back and set immediately-preceding -5 vals to foldlevel.
         if foldlevel != -5:
-            replace_preceding_minus_five_foldlevels(foldlevel_cache, line_num-1, foldlevel)
+            replace_preceding_minus_five_foldlevels(foldlevel_list, line_num-1, foldlevel)
 
         # Final var updates for properties across lines, to setup for next line in loop.
         prev_foldlevel = foldlevel if not is_empty else prev_foldlevel
@@ -750,7 +674,7 @@ cdef void calculate_foldlevels(foldlevel_cache: List[cy.int], buffer_lines: List
             lines_since_end_triple += 1
 
     # Handle the case where foldlevel of last line set to -5; replace sequence with 0.
-    if foldlevel_cache[line_num] == -5:
-        replace_preceding_minus_five_foldlevels(foldlevel_cache, line_num, 0)
+    if foldlevel_list[line_num] == -5:
+        replace_preceding_minus_five_foldlevels(foldlevel_list, line_num, 0)
 
 

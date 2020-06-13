@@ -84,6 +84,12 @@ function! CyfoldsBufEnterInit()
 
     " Initialize variables.
     let b:cyfolds_suppress_insert_mode_switching = 0
+    let b:cyfolds_keyword_change = 0
+
+    let b:cyfolds_saved_changedtick = -1
+    let b:cyfolds_saved_shiftwidth = &shiftwidth
+    let b:cyfolds_saved_lines_of_module_docstrings = g:cyfolds_lines_of_module_docstrings
+    let b:cyfolds_saved_lines_of_fun_and_class_docstrings = g:cyfolds_lines_of_fun_and_class_docstrings
 
     " Start with the chosen foldmethod.
     if g:cyfolds_start_in_manual_method == 1 && &foldmethod != 'manual'
@@ -101,7 +107,11 @@ augroup END
 
 
 python3 << ----------------------- PythonCode ----------------------------------
-"""Python initialization code.  Import the function call_get_foldlevel."""
+"""
+    Python initialization code.  Import the functions `call_get_foldlevels`,
+    and `setup_regex_pattern`.  Initialize the regex patterns (of keywords to
+    fold under).
+"""
 import sys
 from os.path import normpath, join
 import vim
@@ -119,7 +129,7 @@ cyfolds_fold_keywords = vim_eval("cyfolds_fold_keywords")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
 
-from cyfolds import delete_buffer_cache, setup_regex_pattern, call_get_foldlevels
+from cyfolds import setup_regex_pattern, call_get_foldlevels
 setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
 
@@ -128,31 +138,37 @@ setup_regex_pattern(cyfolds_fold_keywords)
 " ==== Define the function GetPythonFoldViaCython to be set as foldexpr.========
 " ==============================================================================
 
+function! CyfoldsChangeDetector()
+    " Detect changes that require recalculating the foldlevels.
+    if b:cyfolds_saved_changedtick != b:changedtick
+        " Could also use undotree().seq_cur instead of b:changedtick.
+        let b:cyfolds_saved_changedtick = b:changedtick
+        return 1
+    elseif b:cyfolds_saved_shiftwidth != &shiftwidth
+        let b:cyfolds_saved_shiftwidth = &shiftwidth
+        return 1
+    elseif b:cyfolds_saved_lines_of_module_docstrings != g:cyfolds_lines_of_module_docstrings
+        let b:cyfolds_saved_lines_of_module_docstrings = g:cyfolds_lines_of_module_docstrings
+        return 1
+    elseif b:cyfolds_saved_lines_of_fun_and_class_docstrings != g:cyfolds_lines_of_fun_and_class_docstrings
+        let b:cyfolds_saved_lines_of_fun_and_class_docstrings = g:cyfolds_lines_of_fun_and_class_docstrings
+        return 1
+    elseif b:cyfolds_keyword_change != 0
+        let b:cyfolds_keyword_change = 0
+        return 1
+    endif
+    return 0
+endfunction
+
 function! GetPythonFoldViaCython(lnum)
     " This function is evaluated for each line and returns the folding level.
     " https://candidtim.github.io/vim/2017/08/11/write-vim-plugin-in-python.html
     " How to return Python values back to vim: https://stackoverflow.com/questions/17656320/
-    " TODO: Is there a way to define dirty cache function in vimscript, to
-    " check here before calling the function (which is expensive in nvim)?
-    if a:lnum == 1
-       python3 call_get_foldlevels()
+    if a:lnum == 1 && CyfoldsChangeDetector()
+        python3 call_get_foldlevels()
     endif
     return b:cyfolds_foldlevel_array[a:lnum-1]
 endfunction
-
-function! DeleteBufferCache(buffer_num)
-" Free the cache memory when a buffer is deleted.
-python3 << ----------------------- PythonCode ----------------------------------
-buffer_num = int(vim_eval("a:buffer_num"))
-delete_buffer_cache(buffer_num)
------------------------ PythonCode ----------------------------------
-endfunction
-
-" Call the delete function when the BufDelete event happens.
-augroup cyfolds_delete_buffer_cache
-    autocmd!
-    autocmd BufDelete *.py,*.pyx,*.pxd call DeleteBufferCache(expand('<abuf>'))
-augroup END
 
 
 " ==============================================================================
@@ -234,13 +250,13 @@ function! CyfoldsToggleManualFolds()
 endfunction
 
 
-function! CyfoldsSetFoldKeywords(keyword_str)
+function! CyfoldsUpdateFoldKeywords()
    " Dynamically assign the folding keywords to those on the string `keyword_str`.
-   let g:cyfolds_fold_keywords = a:keyword_str
 python3 << ----------------------- PythonCode ----------------------------------
-cyfolds_fold_keywords = vim_eval("a:keyword_str")
+cyfolds_fold_keywords = vim_eval("g:cyfolds_fold_keywords")
 setup_regex_pattern(cyfolds_fold_keywords)
 ----------------------- PythonCode ----------------------------------
+   let b:cyfolds_keyword_change = 1
    call CyfoldsForceFoldUpdate()
 endfunction
 
@@ -262,24 +278,10 @@ function! CyfoldsFoldText()
         let line_indent = max([line_indent, indent(foldstart-1)])
     endif
 
-    " What if you use foldstart itself?, always match first line!!!  Mostly
-    " works, but blank lines after docstring cause problems, need to look
-    " forward another in that case...
-
     " TODO: Could this look back a line or two if the prev line is empty,
     " without being too slow?  Docstring whitespace at cutoff point causes
     " ugly indents.  How about detect funs and classes w/o docstring
     " and add indent?
-    "
-    "let line_with_indent = v:foldstart - 1
-    "while IsEmpty(line_with_indent) && line_with_indent >= 0
-    "   line_with_indent -= 1
-    "endwhile
-    "let line_indent = indent(line_with_indent)
-
-    "let line = getline(v:foldstart)
-    "let sub = substitute(line, '/\*\|\*/\|{{{\d\=', '', 'g')
-    "
     return repeat(' ', line_indent) . '+---- ' . num_lines . ' lines ' . v:folddashes
 endfunction
 

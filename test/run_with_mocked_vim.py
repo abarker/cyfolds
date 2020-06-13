@@ -52,17 +52,18 @@ x = "xxx
 # For that reason the prints of lines below do not match the get_foldlevels calls.
 
 def run_for_test_string():
+    """Run on the test string above."""
     print()
     lines = test_string.splitlines()
+    flevels = get_foldlevels(
+                           shiftwidth=4,
+                           lines_of_module_docstrings=-1,
+                           lines_of_fun_and_class_docstrings=-1,
+                           test_buffer=lines)
+    for i in range(0,14):
+        print(lines[i], end="")
+        print("\t\t#", flevels[i])
 
-    for i in range(1,15):
-        print(lines[i-1], end="")
-        flevel = get_foldlevels(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
-                               foldnestmax=20, shiftwidth=4,
-                               lines_of_module_docstrings=-1,
-                               lines_of_fun_and_class_docstrings=-1,
-                               test_buffer=lines)
-        print("\t\t#", flevel)
 
 def print_results_for_file(filename):
     """Run the get_foldlevels calculator on the file and print the results."""
@@ -74,14 +75,14 @@ def print_results_for_file(filename):
         test_code = f.read()
 
     test_code = test_code.splitlines()
+    flevels = get_foldlevels(
+                           shiftwidth=4,
+                           lines_of_module_docstrings=-1,
+                           lines_of_fun_and_class_docstrings=-1,
+                           test_buffer=test_code)
 
-    for lnum in range(1,len(test_code)+1):
-        flevel = get_foldlevels(lnum, cur_buffer_num=1, cur_undo_sequence=-1,
-                               foldnestmax=20, shiftwidth=4,
-                               lines_of_module_docstrings=-1,
-                               lines_of_fun_and_class_docstrings=-1,
-                               test_buffer=test_code)
-        print("{:4}{:3}:".format(lnum-1, flevel), test_code[lnum-1])
+    for lnum in range(len(test_code)):
+        print("{:4}{:3}:".format(lnum, flevels[lnum]), test_code[lnum])
 
 
 def get_fold_list(filename, writefile=""):
@@ -91,23 +92,16 @@ def get_fold_list(filename, writefile=""):
         test_code = f.read()
 
     test_code = test_code.splitlines()
-
-    fold_list = []
-    for lnum in range(1,len(test_code)+1):
-        flevel = get_foldlevels(lnum,
-                               cur_buffer_num=1,
-                               cur_undo_sequence=-1,
-                               foldnestmax=20,
-                               shiftwidth=4,
-                               lines_of_module_docstrings=-1,
-                               lines_of_fun_and_class_docstrings=-1,
-                               test_buffer=test_code)
-        fold_list.append(flevel)
+    flevels = get_foldlevels(
+                           shiftwidth=4,
+                           lines_of_module_docstrings=-1,
+                           lines_of_fun_and_class_docstrings=-1,
+                           test_buffer=test_code)
 
     if writefile:
         with open(writefile, "w") as f:
-            f.writelines(str(fold) + "\n" for fold in fold_list)
-    return fold_list
+            f.writelines(str(fold) + "\n" for fold in flevels)
+    return flevels
 
 
 if __name__ == "__main__":
