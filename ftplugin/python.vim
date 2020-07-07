@@ -163,6 +163,7 @@ endfunction
 
 function! GetPythonFoldViaCython(lnum)
     " This function is evaluated for each line and returns the folding level.
+    " It is set as the foldexpr.
     " https://candidtim.github.io/vim/2017/08/11/write-vim-plugin-in-python.html
     " How to return Python values back to vim: https://stackoverflow.com/questions/17656320/
     if a:lnum == 1 && CyfoldsChangeDetector()
@@ -192,7 +193,6 @@ augroup cyfolds_unset_folding_in_insert_mode
                 \ if g:cyfolds_fix_syntax_highlighting_on_update | call FixSyntaxHighlight() | endif |
                 \ endif
 augroup END
-
 
 " ==============================================================================
 " ==== Define function to force a foldupdate.  =================================
@@ -234,6 +234,58 @@ function! CyfoldsForceFoldUpdate()
         "doautocmd <nomodeline> cyfolds_set_manual_method User
         let timer = timer_start(s:timer_wait, 'SetManual')
     endif
+    if g:cyfolds_fix_syntax_highlighting_on_update
+        call FixSyntaxHighlight()
+    endif
+endfunction
+
+" NEW METHOD CODE BELOW =======================================================
+" Note that foldmethod is local to window; same buffer can have multiple windows.
+
+" Just like windo, but restore the current window when done.
+" https://vim.fandom.com/wiki/Windo_and_restore_current_window
+function! WinDo(command)
+  let currwin=winnr()
+  execute 'windo ' . a:command
+  execute currwin . 'wincmd w'
+endfunction
+com! -nargs=+ -complete=command Windo call WinDo(<q-args>)
+
+" Just like Windo, but disable all autocommands for super fast processing.
+" https://vim.fandom.com/wiki/Windo_and_restore_current_window
+com! -nargs=+ -complete=command Windofast noautocmd call WinDo(<q-args>)
+
+" Just like bufdo, but restore the current buffer when done.
+" https://vim.fandom.com/wiki/Windo_and_restore_current_window
+function! BufDo(command)
+  let currBuff=bufnr("%")
+  execute 'bufdo ' . a:command
+  execute 'buffer ' . currBuff
+endfunction
+com! -nargs=+ -complete=command Bufdo call BufDo(<q-args>)
+
+
+function! s:BufferWindowsSetFoldmethod(foldmethod)
+  let s:curbuf = bufnr('%')
+  silent! execute "Windofast if bufnr('%') is s:curbuf | setlocal foldmethod=" . a:foldmethod . "| endif"
+endfunction
+
+
+function! NewCyfoldsForceFoldUpdate()
+    " Force a fold update.  Unlike zx and zX this does not change the
+    " open/closed state of any of the folds.  Can be mapped to a key like 'x,'
+    setlocal foldenable
+    let w:cyfolds_update_saved_foldmethod = &l:foldmethod " foldmethod to return to.
+
+    call s:BufferWindowsSetFoldmethod('manual')
+
+    if w:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
+        call s:BufferWindowsSetFoldmethod(w:cyfolds_update_saved_foldmethod)
+    else " We need force a fold update and return to manual method.
+        call s:BufferWindowsSetFoldmethod('expr')
+        call s:BufferWindowsSetFoldmethod('manual')
+    endif
+
     if g:cyfolds_fix_syntax_highlighting_on_update
         call FixSyntaxHighlight()
     endif
