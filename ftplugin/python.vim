@@ -119,6 +119,10 @@ endfunction
 augroup cyfolds_buf_new_init
     " Using BufWinEnter, but BufEnter event seems to work, too; not sure which
     " is best or if it matters.  BufNew and BufAdd don't work.
+    "    |BufWinEnter|   after a buffer is displayed (first time) in a window
+    "    |BufEnter|      after entering (first time) a buffer
+    " The |WinEnter| event fires each time you enter a window.
+    " https://vim.fandom.com/wiki/Detect_window_creation_with_WinEnter
     autocmd!
     "autocmd BufEnter *.py,*.pyx,*.pxd :call CyfoldsBufWinEnterInit()
     autocmd BufWinEnter *.py,*.pyx,*.pxd :call CyfoldsBufWinEnterInit()
