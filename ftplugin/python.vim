@@ -211,7 +211,8 @@ augroup cyfolds_unset_folding_in_insert_mode
 
     " TODO TODO TODO TODO:
     " This currently still only updates the current window when leaving insert, not all
-    " windows for buffer.
+    " windows for buffer.  Just call the function that sets foldmethod for all
+    " windows containing the buffer, rather than setting it as here.
     autocmd InsertLeave,WinLeave *.py,*.pyx,*.pxd
                 \ if exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 |
                 \ let &l:foldmethod = w:cyfolds_insert_saved_foldmethod  |
@@ -274,12 +275,10 @@ function! s:BufferWindowsSetFoldmethod(foldmethod)
     silent! execute "Windofast if bufnr('%') is s:curbuf | setlocal foldmethod=" . a:foldmethod . "| endif"
 endfunction
 
-function! CyfoldsForceFoldUpdate()
-    " Force a fold update.  Unlike zx and zX this does not change the
-    " open/closed state of any of the folds.  Can be mapped to a key like 'x,'
-    setlocal foldenable
+function! CyfoldsPlainForceFoldUpdate()
+   " Force a fold update and nothing else.  Unlike zx and zX this does not
+   " change the open/closed state of any of the folds.
     let w:cyfolds_update_saved_foldmethod = &l:foldmethod " foldmethod to return to.
-
     call s:BufferWindowsSetFoldmethod('manual')
 
     if w:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
@@ -288,6 +287,22 @@ function! CyfoldsForceFoldUpdate()
         call s:BufferWindowsSetFoldmethod('expr')
         call s:BufferWindowsSetFoldmethod('manual')
     endif
+endfunction
+
+function! CyfoldsForceFoldUpdate()
+    " Force a fold update, but also set foldenable and do syntax updating if
+    " the user selected that option.
+    setlocal foldenable
+    call CyfoldsPlainForceFoldUpdate()
+    "let w:cyfolds_update_saved_foldmethod = &l:foldmethod " foldmethod to return to.
+    "call s:BufferWindowsSetFoldmethod('manual')
+
+    "if w:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
+    "    call s:BufferWindowsSetFoldmethod(w:cyfolds_update_saved_foldmethod)
+    "else " We need force a fold update and then return to manual method.
+    "    call s:BufferWindowsSetFoldmethod('expr')
+    "    call s:BufferWindowsSetFoldmethod('manual')
+    "endif
 
     if g:cyfolds_fix_syntax_highlighting_on_update
         call FixSyntaxHighlight()
