@@ -66,15 +66,11 @@ if !exists('g:cyfolds_no_initial_fold_calc')
 endif
 
 if !exists('g:cyfolds_update_all_windows_for_buffer')
-    " TODO: Document this setting if decided to expose it to users.
-    " What should default be?  The `zx` command essentially uses 0 default.
-    let g:cyfolds_update_all_windows_for_buffer=0
+    let g:cyfolds_update_all_windows_for_buffer = 0
 endif
 
 function! s:CyfoldsBufWinEnterInit()
     " Initialize upon entering a buffer.
-    " TODO: Update this routine to use newer method of updating folds, and
-    " then move the delay stuff down with old force-fold fun code.
 
     setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
     setlocal foldtext=CyfoldsFoldText()
@@ -96,7 +92,7 @@ function! s:CyfoldsBufWinEnterInit()
         if g:cyfolds_start_in_manual_method != 1
             setlocal foldmethod=expr " Slightly faster if we don't need to change back.
         else
-            call s:BufferWindowsSetFoldmethod('expr', 0, 1)
+            call s:BufferWindowsSetFoldmethod('expr', 0, 0)
         endif
     else
         setlocal foldmethod=manual
@@ -105,7 +101,7 @@ function! s:CyfoldsBufWinEnterInit()
     " Start with the chosen foldmethod.
     if g:cyfolds_start_in_manual_method == 1 && &foldmethod != 'manual'
         setlocal foldmethod=manual
-        "call s:BufferWindowsSetFoldmethod('manual', 0, 1)
+        "call s:BufferWindowsSetFoldmethod('manual', 0, 0)
         "let timer = timer_start(s:timer_wait, 'SetFoldmethodManual')
     endif
 endfunction
@@ -210,7 +206,7 @@ augroup cyfolds_unset_folding_in_insert_mode
     autocmd InsertEnter *.py,*.pyx,*.pxd 
                 \ if b:cyfolds_suppress_insert_mode_switching == 0 | 
                 \     let w:cyfolds_insert_saved_foldmethod = &l:foldmethod |
-                \     call s:BufferWindowsSetFoldmethod('manual', 0, 1) |
+                \     call s:BufferWindowsSetFoldmethod('manual', 0, 0) |
                 \ endif
     autocmd InsertLeave *.py,*.pyx,*.pxd
                 \ if exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 |
@@ -241,18 +237,8 @@ function! s:WinDo(command)
     execute 'windo ' . a:command
     execute currwin . 'wincmd w'
 endfunction
-command! -nargs=+ -complete=command Windo call s:WinDo(<q-args>)
-command! -nargs=+ -complete=command Windofast noautocmd call s:WinDo(<q-args>)
-
-function! s:BufDo(command)
-    " Just like bufdo, but restore the current buffer when done.
-    " See https://vim.fandom.com/wiki/Windo_and_restore_current_window
-    let currBuff=bufnr("%")
-    execute 'bufdo ' . a:command
-    execute 'buffer ' . currBuff
-endfunction
-command! -nargs=+ -complete=command Bufdo call s:BufDo(<q-args>)
-command! -nargs=+ -complete=command Bufdofast noautocmd call s:BufDo(<q-args>)
+command! -nargs=+ -complete=command CyfoldsWindo call s:WinDo(<q-args>)
+command! -nargs=+ -complete=command CyfoldsWindofast noautocmd call s:WinDo(<q-args>)
 
 function! s:CurrWinDo(command)
     " Run the command with windo but only in the current window.  (Used for
@@ -261,9 +247,18 @@ function! s:CurrWinDo(command)
     execute 'windo if winnr() == currwin | ' . a:command . ' | endif'
     execute currwin . 'wincmd w'
 endfunction
-command! -nargs=+ -complete=command CurrWindo call s:CurrWinDo(<q-args>)
-command! -nargs=+ -complete=command CurrWindofast noautocmd call s:CurrWinDo(<q-args>)
+command! -nargs=+ -complete=command CyfoldsCurrWindo call s:CurrWinDo(<q-args>)
+command! -nargs=+ -complete=command CyfoldsCurrWindofast noautocmd call s:CurrWinDo(<q-args>)
 
+"function! s:BufDo(command)
+"    " Just like bufdo, but restore the current buffer when done.
+"    " See https://vim.fandom.com/wiki/Windo_and_restore_current_window
+"    let currBuff=bufnr("%")
+"    execute 'bufdo ' . a:command
+"    execute 'buffer ' . currBuff
+"endfunction
+"command! -nargs=+ -complete=command CyfoldsBufdo call s:BufDo(<q-args>)
+"command! -nargs=+ -complete=command CyfoldsBufdofast noautocmd call s:BufDo(<q-args>)
 
 " ==============================================================================
 " ==== Define the function to force fold updates in all windows for buffer.  ===
@@ -287,10 +282,10 @@ function s:WindowRestoreFoldmethod()
      unlet w:cyfolds_update_saved_foldmethod
 endfunction
 
-function! s:BufferWindowsSetFoldmethod(foldmethod, save, only_curr_win)
+function! s:BufferWindowsSetFoldmethod(foldmethod, save, all_wins_for_buf)
     " Set the foldmethod to `foldmethod` in all windows for the current
     " buffer.  If `save` is 1 then the previous setting is also saved.
-    " If `only_curr_win` is 1 then only the current window is updated
+    " If `all_wins_for_buf` is 0 then only the current window is updated
     " (this differs from setting the foldmethod directly because it also
     " causes the side-effect of fold-evaluation on setting foldmethod=eval).
     let s:curbuf = bufnr('%')
@@ -298,24 +293,24 @@ function! s:BufferWindowsSetFoldmethod(foldmethod, save, only_curr_win)
                 \.     "call s:WindowSetFoldmethod('" . a:foldmethod . "', " . a:save . ") | "
                 \. "endif"
 
-    if a:only_curr_win
-        silent! execute "Windofast " . cmd_str
+    if a:all_wins_for_buf
+        silent! execute "CyfoldsWindofast " . cmd_str
     else
-        silent! execute "CurrWindofast " . cmd_str
+        silent! execute "CyfoldsCurrWindofast " . cmd_str
     endif
 endfunction
 
-function! s:BufferWindowsRestoreFoldmethod(only_curr_win)
+function! s:BufferWindowsRestoreFoldmethod(all_wins_for_buf)
     " Restore the foldmethod to the saved value in all windows for the current buffer.
     let s:curbuf = bufnr('%')
     let cmd_str =  "if bufnr('%') is s:curbuf | "
                 \.     "call s:WindowRestoreFoldmethod() | "
                 \. "endif"
 
-    if a:only_curr_win
-        silent! execute "Windofast " . cmd_str
+    if a:all_wins_for_buf
+        silent! execute "CyfoldsWindofast " . cmd_str
     else
-        silent! execute "CurrWindofast " . cmd_str
+        silent! execute "CyfoldsCurrWindofast " . cmd_str
     endif
 endfunction
 
