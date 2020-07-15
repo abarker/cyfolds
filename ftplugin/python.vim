@@ -231,11 +231,11 @@ augroup cyfolds_unset_folding_in_insert_mode
     autocmd InsertEnter *.py,*.pyx,*.pxd 
                 \ if !exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 | 
                 \     let w:cyfolds_insert_saved_foldmethod = &l:foldmethod |
-                \     call s:BufferWindowsSetFoldmethod("manual") |
+                \     call s:BufferWindowsSetFoldmethod('manual', 0) |
                 \ endif
     autocmd InsertLeave *.py,*.pyx,*.pxd
                 \ if exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 |
-                \     call s:BufferWindowsSetFoldmethod(w:cyfolds_insert_saved_foldmethod) |
+                \     call s:BufferWindowsSetFoldmethod(w:cyfolds_insert_saved_foldmethod, 0) |
                 \     unlet w:cyfolds_insert_saved_foldmethod |
                 \     if g:cyfolds_fix_syntax_highlighting_on_update |
                 \         call s:FixSyntaxHighlight() |
@@ -262,8 +262,8 @@ function! s:WinDo(command)
     execute 'windo ' . a:command
     execute currwin . 'wincmd w'
 endfunction
-com! -nargs=+ -complete=command Windo call s:WinDo(<q-args>)
-com! -nargs=+ -complete=command Windofast noautocmd call s:WinDo(<q-args>)
+command! -nargs=+ -complete=command Windo call s:WinDo(<q-args>)
+command! -nargs=+ -complete=command Windofast noautocmd call s:WinDo(<q-args>)
 
 function! s:BufDo(command)
     " Just like bufdo, but restore the current buffer when done.
@@ -272,8 +272,8 @@ function! s:BufDo(command)
     execute 'bufdo ' . a:command
     execute 'buffer ' . currBuff
 endfunction
-com! -nargs=+ -complete=command Bufdo call s:BufDo(<q-args>)
-com! -nargs=+ -complete=command Bufdofast noautocmd call s:BufDo(<q-args>)
+command! -nargs=+ -complete=command Bufdo call s:BufDo(<q-args>)
+command! -nargs=+ -complete=command Bufdofast noautocmd call s:BufDo(<q-args>)
 
 function! s:CurrWinDo(command)
     " Run the command with windo but only in the current window.  (Used for
@@ -282,43 +282,51 @@ function! s:CurrWinDo(command)
     execute 'windo if winnr() == currwin | ' . a:command . ' | endif'
     execute currwin . 'wincmd w'
 endfunction
-com! -nargs=+ -complete=command CurrWindo call s:CurrWinDo(<q-args>)
-com! -nargs=+ -complete=command CurrWindofast noautocmd call s:CurrWinDo(<q-args>)
+command! -nargs=+ -complete=command CurrWindo call s:CurrWinDo(<q-args>)
+command! -nargs=+ -complete=command CurrWindofast noautocmd call s:CurrWinDo(<q-args>)
 
 
 " ==============================================================================
 " ==== Define the function to force fold updates in all windows for buffer.  ===
 " ==============================================================================
 
-function s:WindowSetFoldmethod(foldmethod, save, restore)
-    " Save foldmethod with the current window and set the given one.  If `save` is 1 then
-    " the old setting is saved with the window.  If `restore` is 1 then the
-    " `foldmethod` argument is ignored and the saved value is used (if set).
+function s:WindowSetFoldmethod(foldmethod, save)
+    " Set the window-local foldmethod to the given one.  If `save` is 1 then
+    " the old setting is saved with the window.
     if a:save
         let w:cyfolds_update_saved_foldmethod = &l:foldmethod " foldmethod to return to.
     endif
+    execute "setlocal foldmethod=" . a:foldmethod
+endfunction
 
-    if a:restore
-        if !exists('w:cyfolds_update_saved_foldmethod')
-           return
-        endif
-        execute "setlocal foldmethod=" . w:cyfolds_update_saved_foldmethod
-        unlet w:cyfolds_update_saved_foldmethod
+function s:WindowRestoreFoldmethod()
+    " Restore the foldmethod to the value stored in w:cyfolds_update_saved_foldmethod."
+     if !exists('w:cyfolds_update_saved_foldmethod')
+        return
+     endif
+     execute "setlocal foldmethod=" . w:cyfolds_update_saved_foldmethod
+     unlet w:cyfolds_update_saved_foldmethod
+endfunction
+
+function! s:BufferWindowsSetFoldmethod(foldmethod, save)
+    " Set the foldmethod to `foldmethod` in all windows for the current buffer.
+    let s:curbuf = bufnr('%')
+    let cmd_str =  "if bufnr('%') is s:curbuf | "
+                \.     "call s:WindowSetFoldmethod('" . a:foldmethod . "', " . a:save . ") | "
+                \. "endif"
+
+    if g:cyfolds_update_all_windows_for_buffer
+        silent! execute "Windofast " . cmd_str
     else
-        execute "setlocal foldmethod=" . a:foldmethod
+        silent! execute "CurrWindofast " . cmd_str
     endif
 endfunction
 
-" ===============
-
-function! s:BufferWindowsSetFoldmethod(foldmethod)
-    " Set the foldmethod to `foldmethod` in all windows for the current buffer.
+function! s:BufferWindowsRestoreFoldmethod()
+    " Restore the foldmethod to the saved value in all windows for the current buffer.
     let s:curbuf = bufnr('%')
-
-    " Note we want function-local eval of a:foldmethod but window-local eval
-    " of the other variables in the `execute` command.
     let cmd_str =  "if bufnr('%') is s:curbuf | "
-                \.     "call s:WindowSetFoldmethod('" . a:foldmethod . "', 0, 0) | "
+                \.     "call s:WindowRestoreFoldmethod() | "
                 \. "endif"
 
     if g:cyfolds_update_all_windows_for_buffer
@@ -336,31 +344,9 @@ function! CyfoldsPlainForceFoldUpdate()
     " window, and it only works with `expr` foldmethod (since the function set there
     " is how folding is implemented/calculated).  The `zX` command is the same but
     " doesn't also do a `zv` to open cursor's fold.
-    
-    " TODO: This doesn't respect the window-local settings of foldmethod; it
-    " resets them all to the setting of the current window (assuming all
-    " windows for the buffer are being force-updated).  Need to move that logic
-    " to the function that sets the foldmethod.
-    "
-    " 1. Run the Windofast first over a function that saves and sets to manual
-    " 2. Then run Windofast over a function that restores the foldmethod
-    "    (setting to expr if needed).
-    "
-    " BUT, the current method works OK for only modifying the current window
-    " (like zX) so as long as new var is not exposed/documented can still push
-    " out.
-
-    " Save and set.
-    let w:cyfolds_update_saved_foldmethod = &l:foldmethod " foldmethod to return to.
-    call s:BufferWindowsSetFoldmethod('manual')
-
-    " Restore.
-    if w:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
-        call s:BufferWindowsSetFoldmethod(w:cyfolds_update_saved_foldmethod)
-    else " We need force a fold update and then return to manual method.
-        call s:BufferWindowsSetFoldmethod('expr')
-        call s:BufferWindowsSetFoldmethod('manual')
-    endif
+    call s:BufferWindowsSetFoldmethod('manual', 1)
+    call s:BufferWindowsSetFoldmethod('expr', 0)
+    call s:BufferWindowsRestoreFoldmethod()
 endfunction
 
 function! CyfoldsForceFoldUpdate()
