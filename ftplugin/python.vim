@@ -35,8 +35,6 @@ let b:undo_ftplugin = "setl foldmethod< foldtext< foldexpr< foldenable< ofu<"
 " ==== Initialization. =========================================================
 " ==============================================================================
 
-let s:timer_wait = 500 " Timer wait in milliseconds, time before switch to manual.
-
 if has('win32') || has ('win64')
     let s:vimhome = $VIM."/vimfiles"
 else
@@ -73,25 +71,10 @@ if !exists('g:cyfolds_update_all_windows_for_buffer')
     let g:cyfolds_update_all_windows_for_buffer=0
 endif
 
-
-function! SetFoldmethodManual(timer)
-    " This is called from a timer to set foldmethod to manual after it has been set to expr.
-    " If the foldmethod is immediately set to manual without the delay the side-effect of
-    " recalculating folds (due to setting to expr) does not occur.
-    setlocal foldmethod=manual
-endfunction
-
-
 function! s:CyfoldsBufWinEnterInit()
     " Initialize upon entering a buffer.
     " TODO: Update this routine to use newer method of updating folds, and
     " then move the delay stuff down with old force-fold fun code.
-
-    if g:cyfolds_no_initial_fold_calc != 1
-        setlocal foldmethod=expr
-    else
-        setlocal foldmethod=manual
-    endif
 
     setlocal foldexpr=GetPythonFoldViaCython(v:lnum)
     setlocal foldtext=CyfoldsFoldText()
@@ -109,9 +92,19 @@ function! s:CyfoldsBufWinEnterInit()
     let b:cyfolds_saved_lines_of_module_docstrings = g:cyfolds_lines_of_module_docstrings
     let b:cyfolds_saved_lines_of_fun_and_class_docstrings = g:cyfolds_lines_of_fun_and_class_docstrings
 
+    if g:cyfolds_no_initial_fold_calc != 1
+        "setlocal foldmethod=expr
+        call s:BufferWindowsSetFoldmethod('expr', 0, 1)
+        "call CyfoldsPlainForceFoldUpdate()
+    else
+        setlocal foldmethod=manual
+    endif
+
     " Start with the chosen foldmethod.
     if g:cyfolds_start_in_manual_method == 1 && &foldmethod != 'manual'
-        let timer = timer_start(s:timer_wait, 'SetFoldmethodManual')
+        setlocal foldmethod=manual
+        "call s:BufferWindowsSetFoldmethod('manual', 0, 1)
+        "let timer = timer_start(s:timer_wait, 'SetFoldmethodManual')
     endif
 endfunction
 
@@ -199,29 +192,13 @@ endfunction
 " ==== Turn off fold updating in insert mode, and update after TextChanged.  ===
 " ==============================================================================
 
-"augroup cyfolds_unset_folding_in_insert_mode
-"    " Note you can stay in insert mode when changing windows or buffer (like with mouse).
-"    " See https://vim.fandom.com/wiki/Keep_folds_closed_while_inserting_text
-"    autocmd!
-"    "autocmd InsertEnter *.py,*.pyx,*.pxd setlocal foldmethod=marker " Bad: opens all folds.
-"    autocmd InsertEnter *.py,*.pyx,*.pxd 
-"                \ if !exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 | 
-"                \ let w:cyfolds_insert_saved_foldmethod = &l:foldmethod |
-"                \ setlocal foldmethod=manual |
-"                \ endif
-"
-"    " This currently still only updates the current window when leaving insert, not all
-"    " windows for buffer.  Just call the function that sets foldmethod for all
-"    " windows containing the buffer, rather than setting it as here.
-"    autocmd InsertLeave,WinLeave *.py,*.pyx,*.pxd
-"                \ if exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 |
-"                \ let &l:foldmethod = w:cyfolds_insert_saved_foldmethod  |
-"                \ unlet w:cyfolds_insert_saved_foldmethod |
-"                \ if g:cyfolds_fix_syntax_highlighting_on_update |
-"                \ call s:FixSyntaxHighlight() | endif |
-"                \ endif
-"augroup END
-
+" TODO: If you set foldlevel=expr and then go into insert mode and then
+" mouse-click into another window, staying in insert mode, and then leave
+" insert mode in the other window, the first window then stays in manual
+" mode.  Maybe on InsertLeave you should restore each window that has the
+" varible `w:cyfolds_insert_saved_foldmethod` set?  Do a Windo command.
+" But is insert-mode folding not suppressed in the other window?  Must you
+" also suppress it in all Python windows? 
 
 augroup cyfolds_unset_folding_in_insert_mode
     " Note you can stay in insert mode when changing windows or buffer (like with mouse).
@@ -229,13 +206,13 @@ augroup cyfolds_unset_folding_in_insert_mode
     autocmd!
     "autocmd InsertEnter *.py,*.pyx,*.pxd setlocal foldmethod=marker " Bad: opens all folds.
     autocmd InsertEnter *.py,*.pyx,*.pxd 
-                \ if !exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 | 
+                \ if b:cyfolds_suppress_insert_mode_switching == 0 | 
                 \     let w:cyfolds_insert_saved_foldmethod = &l:foldmethod |
-                \     call s:BufferWindowsSetFoldmethod('manual', 0) |
+                \     call s:BufferWindowsSetFoldmethod('manual', 0, 1) |
                 \ endif
     autocmd InsertLeave *.py,*.pyx,*.pxd
                 \ if exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 |
-                \     call s:BufferWindowsSetFoldmethod(w:cyfolds_insert_saved_foldmethod, 0) |
+                \     call s:BufferWindowsSetFoldmethod(w:cyfolds_insert_saved_foldmethod, 0, 0) |
                 \     unlet w:cyfolds_insert_saved_foldmethod |
                 \     if g:cyfolds_fix_syntax_highlighting_on_update |
                 \         call s:FixSyntaxHighlight() |
@@ -308,28 +285,32 @@ function s:WindowRestoreFoldmethod()
      unlet w:cyfolds_update_saved_foldmethod
 endfunction
 
-function! s:BufferWindowsSetFoldmethod(foldmethod, save)
-    " Set the foldmethod to `foldmethod` in all windows for the current buffer.
+function! s:BufferWindowsSetFoldmethod(foldmethod, save, only_curr_win)
+    " Set the foldmethod to `foldmethod` in all windows for the current
+    " buffer.  If `save` is 1 then the previous setting is also saved.
+    " If `only_curr_win` is 1 then only the current window is updated
+    " (this differs from setting the foldmethod directly because it also
+    " causes the side-effect of fold-evaluation on setting foldmethod=eval).
     let s:curbuf = bufnr('%')
     let cmd_str =  "if bufnr('%') is s:curbuf | "
                 \.     "call s:WindowSetFoldmethod('" . a:foldmethod . "', " . a:save . ") | "
                 \. "endif"
 
-    if g:cyfolds_update_all_windows_for_buffer
+    if a:only_curr_win
         silent! execute "Windofast " . cmd_str
     else
         silent! execute "CurrWindofast " . cmd_str
     endif
 endfunction
 
-function! s:BufferWindowsRestoreFoldmethod()
+function! s:BufferWindowsRestoreFoldmethod(only_curr_win)
     " Restore the foldmethod to the saved value in all windows for the current buffer.
     let s:curbuf = bufnr('%')
     let cmd_str =  "if bufnr('%') is s:curbuf | "
                 \.     "call s:WindowRestoreFoldmethod() | "
                 \. "endif"
 
-    if g:cyfolds_update_all_windows_for_buffer
+    if a:only_curr_win
         silent! execute "Windofast " . cmd_str
     else
         silent! execute "CurrWindofast " . cmd_str
@@ -344,9 +325,9 @@ function! CyfoldsPlainForceFoldUpdate()
     " window, and it only works with `expr` foldmethod (since the function set there
     " is how folding is implemented/calculated).  The `zX` command is the same but
     " doesn't also do a `zv` to open cursor's fold.
-    call s:BufferWindowsSetFoldmethod('manual', 1)
-    call s:BufferWindowsSetFoldmethod('expr', 0)
-    call s:BufferWindowsRestoreFoldmethod()
+    call s:BufferWindowsSetFoldmethod('manual', 1, g:cyfolds_update_all_windows_for_buffer)
+    call s:BufferWindowsSetFoldmethod('expr', 0, g:cyfolds_update_all_windows_for_buffer)
+    call s:BufferWindowsRestoreFoldmethod(g:cyfolds_update_all_windows_for_buffer)
 endfunction
 
 function! CyfoldsForceFoldUpdate()
@@ -412,6 +393,15 @@ endfunction
 " ==============================================================================
 " ==== Older function to force a foldupdate only in current window (unused).====
 " ==============================================================================
+
+let s:timer_wait = 500 " Timer wait in milliseconds, time before switch to manual.
+
+function! SetFoldmethodManual(timer)
+    " This is called from a timer to set foldmethod to manual after it has been set to expr.
+    " If the foldmethod is immediately set to manual without the delay the side-effect of
+    " recalculating folds (due to setting to expr) does not occur.
+    setlocal foldmethod=manual
+endfunction
 
 function! CyfoldsForceCurrentWindowOnlyFoldUpdate()
     " Force a fold update.  Unlike zx and zX this does not change the
