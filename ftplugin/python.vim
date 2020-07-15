@@ -93,9 +93,11 @@ function! s:CyfoldsBufWinEnterInit()
     let b:cyfolds_saved_lines_of_fun_and_class_docstrings = g:cyfolds_lines_of_fun_and_class_docstrings
 
     if g:cyfolds_no_initial_fold_calc != 1
-        "setlocal foldmethod=expr
-        call s:BufferWindowsSetFoldmethod('expr', 0, 1)
-        "call CyfoldsPlainForceFoldUpdate()
+        if g:cyfolds_start_in_manual_method != 1
+            setlocal foldmethod=expr " Slightly faster if we don't need to change back.
+        else
+            call s:BufferWindowsSetFoldmethod('expr', 0, 1)
+        endif
     else
         setlocal foldmethod=manual
     endif

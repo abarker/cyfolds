@@ -249,6 +249,19 @@ Other settings
 
      let cyfolds_fix_syntax_highlighting_on_update = 1
 
+* To define the fold-updating function to update all the windows for the
+  current buffer instead of just updating the current window, use:
+
+  .. code-block:: vim
+
+     let cyfolds_update_all_windows_for_buffer = 1
+
+  The default is 0, to only update the folds in the current window.  That is
+  essentially what the built-in `zx` and `zX` commands do.  Updating all the
+  windows for the current buffer can be convenient when you have opened
+  multiple ones.  It is slightly slower (the folds for each such window need to
+  be set, but they only need to be calculated once).
+
 * To completely disable loading of the Cyfolds plugin use this in your
   ``.vimrc``:
 
