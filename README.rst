@@ -129,7 +129,7 @@ Cyfolds adds two new key bindings:
   open or closed, are unchanged except for folds created or removed by the
   updating itself.  (This is unlike the built-in ``zx`` and ``zX`` commands,
   which always reset the open/closed states of folds according to
-  ``foldlevel``.)
+  ``foldlevel`` and which do not work with manual foldmethod.)
   
   The ``zuz`` command sets ``foldenable`` for the buffer if it is not already
   set.  The key sequence is mapped to the function call

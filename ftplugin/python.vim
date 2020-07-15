@@ -43,31 +43,31 @@ else
     let s:vimhome = $HOME."/.vim"
 endif
 
-if !exists("g:cyfolds_fold_keywords")
-    let g:cyfolds_fold_keywords = "class,def,async def"
+if !exists('g:cyfolds_fold_keywords')
+    let g:cyfolds_fold_keywords = 'class,def,async def'
 endif
 
-if !exists("g:cyfolds_start_in_manual_method")
+if !exists('g:cyfolds_start_in_manual_method')
     let g:cyfolds_start_in_manual_method = 1
 endif
 
-if !exists("g:cyfolds_lines_of_module_docstrings")
+if !exists('g:cyfolds_lines_of_module_docstrings')
     let g:cyfolds_lines_of_module_docstrings = -1
 endif
 
-if !exists("g:cyfolds_lines_of_fun_and_class_docstrings")
+if !exists('g:cyfolds_lines_of_fun_and_class_docstrings')
     let g:cyfolds_lines_of_fun_and_class_docstrings = -1
 endif
 
-if !exists("g:cyfolds_fix_syntax_highlighting_on_update")
+if !exists('g:cyfolds_fix_syntax_highlighting_on_update')
     let g:cyfolds_fix_syntax_highlighting_on_update = 0
 endif
 
-if !exists("g:cyfolds_no_initial_fold_calc")
+if !exists('g:cyfolds_no_initial_fold_calc')
     let g:cyfolds_no_initial_fold_calc = 0
 endif
 
-if !exists("g:cyfolds_update_all_windows_for_buffer")
+if !exists('g:cyfolds_update_all_windows_for_buffer')
     " TODO: Document this setting if decided to expose it to users.
     " What should default be?  The `zx` command essentially uses 0 default.
     let g:cyfolds_update_all_windows_for_buffer=0
@@ -82,7 +82,7 @@ function! SetFoldmethodManual(timer)
 endfunction
 
 
-function! CyfoldsBufWinEnterInit()
+function! s:CyfoldsBufWinEnterInit()
     " Initialize upon entering a buffer.
     " TODO: Update this routine to use newer method of updating folds, and
     " then move the delay stuff down with old force-fold fun code.
@@ -112,15 +112,6 @@ function! CyfoldsBufWinEnterInit()
     " Start with the chosen foldmethod.
     if g:cyfolds_start_in_manual_method == 1 && &foldmethod != 'manual'
         let timer = timer_start(s:timer_wait, 'SetFoldmethodManual')
-
-        " These lines below also work, but update the buffer in all windows.
-        " Alternately, the CurrWinDo function could be used to only do current one.
-        " Note this also sets foldenable; maybe separate out part of folding fun?
-        "set foldmethod=manual 
-        "let saved_fix_syntax = g:cyfolds_fix_syntax_highlighting_on_update
-        "let g:cyfolds_fix_syntax_highlighting_on_update = 0
-        "call CyfoldsForceFoldUpdate()
-        "let g:cyfolds_fix_syntax_highlighting_on_update = saved_fix_syntax
     endif
 endfunction
 
@@ -133,7 +124,7 @@ augroup cyfolds_buf_new_init
     " https://vim.fandom.com/wiki/Detect_window_creation_with_WinEnter
     autocmd!
     "autocmd BufEnter *.py,*.pyx,*.pxd :call CyfoldsBufWinEnterInit()
-    autocmd BufWinEnter *.py,*.pyx,*.pxd :call CyfoldsBufWinEnterInit()
+    autocmd BufWinEnter *.py,*.pyx,*.pxd :call s:CyfoldsBufWinEnterInit()
 augroup END
 
 
@@ -169,7 +160,7 @@ setup_regex_pattern(cyfolds_fold_keywords)
 " ==== Define the function GetPythonFoldViaCython to be set as foldexpr.========
 " ==============================================================================
 
-function! CyfoldsChangeDetector()
+function! s:CyfoldsChangeDetector()
     " Detect changes that require recalculating the foldlevels.
     if b:cyfolds_saved_changedtick != b:changedtick
         " Could also use undotree().seq_cur instead of b:changedtick.
@@ -196,7 +187,7 @@ function! GetPythonFoldViaCython(lnum)
     " It is set as the foldexpr.
     " https://candidtim.github.io/vim/2017/08/11/write-vim-plugin-in-python.html
     " How to return Python values back to vim: https://stackoverflow.com/questions/17656320/
-    if a:lnum == 1 && CyfoldsChangeDetector()
+    if a:lnum == 1 && s:CyfoldsChangeDetector()
         python3 call_get_foldlevels()
     endif
     " echom a:lnum
@@ -239,15 +230,16 @@ augroup cyfolds_unset_folding_in_insert_mode
     "autocmd InsertEnter *.py,*.pyx,*.pxd setlocal foldmethod=marker " Bad: opens all folds.
     autocmd InsertEnter *.py,*.pyx,*.pxd 
                 \ if !exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 | 
-                \ let w:cyfolds_insert_saved_foldmethod = &l:foldmethod |
-                \ call s:BufferWindowsSetFoldmethod("manual") |
+                \     let w:cyfolds_insert_saved_foldmethod = &l:foldmethod |
+                \     call s:BufferWindowsSetFoldmethod("manual") |
                 \ endif
     autocmd InsertLeave *.py,*.pyx,*.pxd
                 \ if exists('w:cyfolds_insert_saved_foldmethod') && b:cyfolds_suppress_insert_mode_switching == 0 |
-                \ call s:BufferWindowsSetFoldmethod(w:cyfolds_insert_saved_foldmethod) |
-                \ unlet w:cyfolds_insert_saved_foldmethod |
-                \ if g:cyfolds_fix_syntax_highlighting_on_update |
-                \ call s:FixSyntaxHighlight() | endif |
+                \     call s:BufferWindowsSetFoldmethod(w:cyfolds_insert_saved_foldmethod) |
+                \     unlet w:cyfolds_insert_saved_foldmethod |
+                \     if g:cyfolds_fix_syntax_highlighting_on_update |
+                \         call s:FixSyntaxHighlight() |
+                \     endif |
                 \ endif
 augroup END
 
@@ -258,14 +250,14 @@ augroup END
 
 function! s:FixSyntaxHighlight()
     " Reset syntax highlighting from the start of the file.
-    if g:cyfolds_fix_syntax_highlighting_on_update && exists("g:syntax_on")
+    if g:cyfolds_fix_syntax_highlighting_on_update && exists('g:syntax_on')
         syntax sync fromstart
     endif
 endfunction
 
-" Just like windo, but restore the current window when done.
-" See https://vim.fandom.com/wiki/Windo_and_restore_current_window
 function! s:WinDo(command)
+    " Just like windo, but restore the current window when done.
+    " See https://vim.fandom.com/wiki/Windo_and_restore_current_window
     let currwin=winnr()
     execute 'windo ' . a:command
     execute currwin . 'wincmd w'
@@ -273,9 +265,9 @@ endfunction
 com! -nargs=+ -complete=command Windo call s:WinDo(<q-args>)
 com! -nargs=+ -complete=command Windofast noautocmd call s:WinDo(<q-args>)
 
-" Just like bufdo, but restore the current buffer when done.
-" See https://vim.fandom.com/wiki/Windo_and_restore_current_window
 function! s:BufDo(command)
+    " Just like bufdo, but restore the current buffer when done.
+    " See https://vim.fandom.com/wiki/Windo_and_restore_current_window
     let currBuff=bufnr("%")
     execute 'bufdo ' . a:command
     execute 'buffer ' . currBuff
@@ -298,15 +290,41 @@ com! -nargs=+ -complete=command CurrWindofast noautocmd call s:CurrWinDo(<q-args
 " ==== Define the function to force fold updates in all windows for buffer.  ===
 " ==============================================================================
 
+function s:WindowSetFoldmethod(foldmethod, save, restore)
+    " Save foldmethod with the current window and set the given one.  If `save` is 1 then
+    " the old setting is saved with the window.  If `restore` is 1 then the
+    " `foldmethod` argument is ignored and the saved value is used (if set).
+    if a:save
+        let w:cyfolds_update_saved_foldmethod = &l:foldmethod " foldmethod to return to.
+    endif
+
+    if a:restore
+        if !exists('w:cyfolds_update_saved_foldmethod')
+           return
+        endif
+        execute "setlocal foldmethod=" . w:cyfolds_update_saved_foldmethod
+        unlet w:cyfolds_update_saved_foldmethod
+    else
+        execute "setlocal foldmethod=" . a:foldmethod
+    endif
+endfunction
+
+" ===============
+
 function! s:BufferWindowsSetFoldmethod(foldmethod)
     " Set the foldmethod to `foldmethod` in all windows for the current buffer.
     let s:curbuf = bufnr('%')
+
+    " Note we want function-local eval of a:foldmethod but window-local eval
+    " of the other variables in the `execute` command.
+    let cmd_str =  "if bufnr('%') is s:curbuf | "
+                \.     "call s:WindowSetFoldmethod('" . a:foldmethod . "', 0, 0) | "
+                \. "endif"
+
     if g:cyfolds_update_all_windows_for_buffer
-        silent! execute "Windofast if bufnr('%') is s:curbuf | setlocal foldmethod="
-                      \ . a:foldmethod . "| endif"
+        silent! execute "Windofast " . cmd_str
     else
-        silent! execute "CurrWindofast if bufnr('%') is s:curbuf | setlocal foldmethod="
-                      \ . a:foldmethod . "| endif"
+        silent! execute "CurrWindofast " . cmd_str
     endif
 endfunction
 
@@ -321,10 +339,22 @@ function! CyfoldsPlainForceFoldUpdate()
     
     " TODO: This doesn't respect the window-local settings of foldmethod; it
     " resets them all to the setting of the current window (assuming all
-    " windows for the buffer are being force-updated).
+    " windows for the buffer are being force-updated).  Need to move that logic
+    " to the function that sets the foldmethod.
+    "
+    " 1. Run the Windofast first over a function that saves and sets to manual
+    " 2. Then run Windofast over a function that restores the foldmethod
+    "    (setting to expr if needed).
+    "
+    " BUT, the current method works OK for only modifying the current window
+    " (like zX) so as long as new var is not exposed/documented can still push
+    " out.
+
+    " Save and set.
     let w:cyfolds_update_saved_foldmethod = &l:foldmethod " foldmethod to return to.
     call s:BufferWindowsSetFoldmethod('manual')
 
+    " Restore.
     if w:cyfolds_update_saved_foldmethod != 'manual' " All methods except manual update folds.
         call s:BufferWindowsSetFoldmethod(w:cyfolds_update_saved_foldmethod)
     else " We need force a fold update and then return to manual method.
@@ -376,7 +406,8 @@ endfunction
 " ==== Modify foldline to look good with folded Python. ========================
 " ==============================================================================
 
-function! IsEmpty(line)
+function! s:IsEmpty(line)
+    " Currently unused.
     return line =~ '^\s*$'
 endfunction
 
