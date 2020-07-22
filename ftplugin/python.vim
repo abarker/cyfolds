@@ -197,13 +197,9 @@ endfunction
 " ==== Turn off fold updating in insert mode, and update after TextChanged.  ===
 " ==============================================================================
 
-" TODO: If you set foldlevel=expr and then go into insert mode and then
-" mouse-click into another window, staying in insert mode, and then leave
-" insert mode in the other window, the first window then stays in manual
-" mode.  Maybe on InsertLeave you should restore each window that has the
-" varible `w:cyfolds_saved_foldmethod_insert` set?  Do a Windo command.
-" But is insert-mode folding not suppressed in the other window?  Must you
-" also suppress it in all Python windows? 
+" TODO: Document the new behavior.  If g:cyfolds_update_all_windows_for_buffer
+" is set to 1 then on exiting insert mode all windows for the modified buffer
+" which have `expr` set as the foldmethod have their folds updated.
 
 augroup cyfolds_unset_folding_in_insert_mode
     " Note you can stay in insert mode when changing windows or buffer (like with mouse).
@@ -212,16 +208,17 @@ augroup cyfolds_unset_folding_in_insert_mode
 
     autocmd InsertEnter *.py,*.pyx,*.pxd 
                 \ if b:cyfolds_suppress_insert_mode_switching == 0 | 
-                \     let w:cyfolds_saved_foldmethod_insert = &l:foldmethod |
-                \     call s:BufferWindowsSetFoldmethod('manual', '', 0) |
+                \     call s:BufferWindowsSetFoldmethod('manual', 'cyfolds_saved_foldmethod_insert',
+                \                                       g:cyfolds_update_all_windows_for_buffer) |
                 \ endif
 
-    " TODO: Make this save on BufferWindowsSetFoldmethod above and here
-    " restore with BufferWindowsRestoreFoldmethod. (Maybe all Python buffers later).
+    " TODO: Maybe set InsertLeave for all filetypes later, not just Python, so you can move to any buffer with
+    " mouse click during insert and still restore on exit.
+    " TODO: Does syntax highlighting need to be per-buffer too?
     autocmd InsertLeave *.py,*.pyx,*.pxd
-                \ if exists('w:cyfolds_saved_foldmethod_insert') && b:cyfolds_suppress_insert_mode_switching == 0 |
-                \     call s:BufferWindowsSetFoldmethod(w:cyfolds_saved_foldmethod_insert, '', 0) |
-                \     unlet w:cyfolds_saved_foldmethod_insert |
+                \ if b:cyfolds_suppress_insert_mode_switching == 0 |
+                \     call s:BufferWindowsRestoreFoldmethod('cyfolds_saved_foldmethod_insert',
+                \                                           g:cyfolds_update_all_windows_for_buffer) |
                 \     if g:cyfolds_fix_syntax_highlighting_on_update |
                 \         call s:FixSyntaxHighlight() |
                 \     endif |
