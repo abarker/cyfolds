@@ -201,11 +201,11 @@ endfunction
 " is set to 1 then on exiting insert mode all windows for the modified buffer
 " which have `expr` set as the foldmethod have their folds updated.
 
-augroup cyfolds_unset_folding_in_insert_mode
-    " Note you can stay in insert mode when changing windows or buffer (like with mouse).
-    " See https://vim.fandom.com/wiki/Keep_folds_closed_while_inserting_text
-    autocmd!
+" Note you can stay in insert mode when changing windows or buffer (like with mouse).
+" See https://vim.fandom.com/wiki/Keep_folds_closed_while_inserting_text
 
+augroup cyfolds_unset_folding_in_insert_mode
+    autocmd!
     autocmd InsertEnter *.py,*.pyx,*.pxd 
                 \ if b:cyfolds_suppress_insert_mode_switching == 0 | 
                 \     call s:BufferWindowsSetFoldmethod('manual', 'cyfolds_saved_foldmethod_insert',
@@ -214,7 +214,6 @@ augroup cyfolds_unset_folding_in_insert_mode
 
     " TODO: Maybe set InsertLeave for all filetypes later, not just Python, so you can move to any buffer with
     " mouse click during insert and still restore on exit.
-    " TODO: Does syntax highlighting need to be per-buffer too?
     autocmd InsertLeave *.py,*.pyx,*.pxd
                 \ if b:cyfolds_suppress_insert_mode_switching == 0 |
                 \     call s:BufferWindowsRestoreFoldmethod('cyfolds_saved_foldmethod_insert',
@@ -231,10 +230,10 @@ augroup END
 " ==============================================================================
 
 function! s:FixSyntaxHighlight()
-    " Reset syntax highlighting from the start of the file.
-    if g:cyfolds_fix_syntax_highlighting_on_update && exists('g:syntax_on')
-        syntax sync fromstart
-    endif
+    " Reset syntax highlighting from the start of the file.  Note that syntax
+    " syncing is per-buffer, not per window.
+    " (Dont bother checking exists('g:syntax_on'))
+     syntax sync fromstart
 endfunction
 
 function! s:WinDo(command)
