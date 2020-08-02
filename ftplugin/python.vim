@@ -67,12 +67,6 @@ endif
 
 if !exists('g:cyfolds_update_all_windows_for_buffer')
     let g:cyfolds_update_all_windows_for_buffer = 0
-    " TODO: document that global config values can't be updated on fly!!!
-    " Using `get` might work (see links).  Also, doc the var in general and its default value.
-    " https://www.reddit.com/r/vim/comments/7bcado/setting_default_values_for_plugins_global/
-    " https://stackoverflow.com/questions/24660550/how-can-i-set-a-global-variable-from-a-script-command-line
-    " https://stackoverflow.com/questions/15309218/vim-where-to-put-default-values-for-plugin-variables
-    let g:cyfolds_update_all_windows_for_buffer = 1
 endif
 
 function! s:CyfoldsBufWinEnterInit()
@@ -386,7 +380,7 @@ endfunction
 
 
 " ==============================================================================
-" ==== Modify foldline to look good with folded Python. ========================
+" ==== Modify fold line to look good with folded Python. =======================
 " ==============================================================================
 
 function! s:IsEmpty(line)

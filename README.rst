@@ -258,8 +258,8 @@ Other settings
 
   The default is 0, to only update the folds in the current window.  That is
   essentially what the built-in `zx` and `zX` commands do.  Updating all the
-  windows for the current buffer can be convenient when you have opened
-  multiple ones.  It is slightly slower (the folds for each such window need to
+  windows for the current buffer is convenient when you have multiple windows
+  for a buffer.  It is slightly slower (the folds for each such window need to
   be set, but they only need to be calculated once).
 
 * To completely disable loading of the Cyfolds plugin use this in your
@@ -306,6 +306,8 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_start_in_manual_method = 1 " Default is to start in manual mode.
    let cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
    let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
+   let cyfolds_update_all_windows_for_buffer = 1 " Update all windows for buffer, not just current.
+
 
    " General folding settings.
    set foldenable " Enable folding and show the current folds.
@@ -316,9 +318,10 @@ These are the ``.vimrc`` settings I'm currently using:
    "set foldmethod=manual " Set for other file types if desired; Cyfolds ignores it for Python.
 
 Sometimes opening visible folds with a higher fold level can take several
-applications of the builtin ``zo`` or ``za`` commands.  To force such folds to
-open or close immediately I define a fold-toggling function and bind it to the
-normal-mode space bar key (alternately, ``za`` could be remapped):
+applications of the builtin ``zo`` or ``za`` commands.  To force all folds to
+open or close immediately I define this fold-toggling function in my ``.vimrc``
+file and bind it to the normal-mode space bar key (alternately, ``za`` or any
+other key could be remapped):
 
 .. code-block:: vim
 
