@@ -5,6 +5,7 @@ History
 ----------
 
 Added new global variable ``g:cyfolds_update_all_windows_for_buffer``.
+The way that fold updates are forced was rewritten to use ``windo``.
 
 2019-??-??)
 -----------
