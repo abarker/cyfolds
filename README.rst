@@ -308,7 +308,6 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
    let cyfolds_update_all_windows_for_buffer = 1 " Update all windows for buffer, not just current.
 
-
    " General folding settings.
    set foldenable " Enable folding and show the current folds.
    "set nofoldenable " Disable folding and show normal, unfolded text.
