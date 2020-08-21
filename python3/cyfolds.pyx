@@ -54,6 +54,10 @@ parameters spread over multiple lines and the text inside multiline docstrings.
 The actual ordering of the states in the file is in reverse, so that
 states do not trigger next states until the next loop (line) through.
 
+Note that `fun_or_class_def` in these names actually refers to any keyword
+selected for folding; they just usually happen to be function or class
+definitions.
+
 """
 #==============================================================================
 # This file is part of the Cyfolds package, Copyright (c) 2019 Allen Barker.
@@ -212,13 +216,19 @@ def setup_regex_pattern(fold_keywords_string: str=default_fold_keywords):
 # Utility functions used in the `calculate_foldlevels` function.
 #
 
-cdef bint is_begin_fun_or_class_def(line: str, prev_nested: cy.int,
+cdef (bint, bint) line_begins_fun_or_class_def(line: str, prev_nested: cy.int,
                                     in_string: cy.int, indent_spaces: cy.int):
-    """Boolean for whether fun or class def begins on the line."""
+    """Boolean for whether fun or class def (or any chosen keyword) begins on the
+    line.  Also returns a boolean for whether it is a class definition."""
     if prev_nested or in_string:
-        return False
+        return False, False
     matchobject = fold_keywords_matcher.match(line, indent_spaces,)
-    return True if matchobject else False
+    begins_def: bint
+    begins_with_c: bint
+    begins_def = bool(matchobject)
+    begins_with_c = line[0] == "c" if line else False
+    begins_class_def = begins_def and begins_with_c
+    return begins_def, begins_class_def
 
 
 cdef void replace_preceding_minus_five_foldlevels(foldlevel_list: List[cy.int],
@@ -570,8 +580,11 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
 
         if not is_empty or prev_line_has_a_continuation:
             # This part is the finite-state machine handling docstrings after fundef.
-            begin_fun_or_class_def: bint = is_begin_fun_or_class_def(line, prev_nested,
-                                                               in_string, indent_spaces)
+            begin_fun_or_class_def: bint
+            begin_class_def: bint
+            begin_fun_or_class_def, begin_class_def = line_begins_fun_or_class_def(
+                                                                line, prev_nested,
+                                                                in_string, indent_spaces)
             if DEBUG:
                 print("   begin_fun_or_class_def:", begin_fun_or_class_def)
                 print("   inside_fun_or_class_def:", inside_fun_or_class_def)
