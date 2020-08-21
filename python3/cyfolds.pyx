@@ -143,7 +143,6 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
                           lines_of_module_docstrings:cy.int=-1,
                           lines_of_fun_and_class_docstrings:cy.int=-1,
                           test_buffer: object = None):
-
     """Recalculate all the fold levels.  The `test_buffer` parameter is for
     passing in a mock of the `vim.current.buffer` object in debugging and
     testing.
@@ -236,9 +235,9 @@ cdef void replace_preceding_minus_five_foldlevels(foldlevel_list: List[cy.int],
 
 cdef cy.int increase_foldlevel(foldlevel_stack: List[cy.int], fold_indent_spaces_stack:
                   List[cy.int], new_foldlevel: cy.int, new_fold_indent_spaces: cy.int):
-    """The fun/class defs define the new fold levels, but they're deferred for possible
-    docstrings.  Also, levels are saved so things which
-    dedent can return to that level (like after nested fun defs)."""
+    """The fun/class defs define the new fold levels, but they're deferred for
+    possible docstrings.  Also, levels are saved so things which dedent can
+    return to that level (like after nested fun defs)."""
     if DEBUG:
         print("   --> increasing foldlevel to {}".format(new_foldlevel))
 
