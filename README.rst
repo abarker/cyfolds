@@ -316,6 +316,15 @@ These are the ``.vimrc`` settings I'm currently using:
    set foldminlines=0 " Minimum number of lines in a fold; don't fold small things.
    "set foldmethod=manual " Set for other file types if desired; Cyfolds ignores it for Python.
 
+If you want to define any of the general folding settings which take local
+values for Python files only you could alternately use autocommands in your
+``.vimrc``, calling ``setlocal``.  For example, to start with top-level
+functions and classes unfolded but only in Python files you could use:
+
+.. code-block:: vim
+
+   autocmd FileType python setlocal foldlevel=1
+
 Sometimes opening visible folds with a higher fold level can take several
 applications of the builtin ``zo`` or ``za`` commands.  To force all folds to
 open or close immediately I define this fold-toggling function in my ``.vimrc``
