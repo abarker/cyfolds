@@ -135,17 +135,22 @@ def call_get_foldlevels():
     per fold update, when the line number is 1."""
     shiftwidth = int(vim_eval("&shiftwidth"))
     lines_of_module_docstrings = int(vim_eval("g:cyfolds_lines_of_module_docstrings"))
-    lines_of_fun_and_class_docstrings = int(vim_eval("g:cyfolds_lines_of_fun_and_class_docstrings"))
+    lines_of_fun_and_class_docstrings = int(vim_eval(
+                                   "g:cyfolds_lines_of_fun_and_class_docstrings"))
+    increase_top_level_non_class_foldlevels = bool(vim_eval(
+                                   "g:cyfolds_increase_top_level_non_class_foldlevels"))
 
     # Call the Cython function to do the actual computation (which leaves the values in
     # the Vim variable `b:cyfolds_foldlevel_array`).
     get_foldlevels(shiftwidth, lines_of_module_docstrings,
-                   lines_of_fun_and_class_docstrings)
+                   lines_of_fun_and_class_docstrings,
+                   increase_top_level_non_class_foldlevels)
 
 
 cpdef list get_foldlevels(shiftwidth:cy.int=4,
                           lines_of_module_docstrings:cy.int=-1,
                           lines_of_fun_and_class_docstrings:cy.int=-1,
+                          increase_top_level_non_class_foldlevels:bint=False,
                           test_buffer: object = None):
     """Recalculate all the fold levels.  The `test_buffer` parameter is for
     passing in a mock of the `vim.current.buffer` object in debugging and
@@ -154,9 +159,11 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
     The return value is ONLY used in the mocking test function.  The actual Vim
     code uses the array of values set in `b:cyfolds_foldlevel_array`."""
     # This function is cpdef instead of cdef only because some vim-mocking debugging
-    # code (run_with_mocked_vim) expects to be able to call it directly.  This function
-    # is called from testing routine so parameters can be modified by passing in args.
-    # Be SURE all int args passed to this function have been converted from strings.
+    # code (`run_with_mocked_vim.py`) expects to be able to call it directly.  This
+    # function is called from testing routine so parameters can be modified by passing
+    # in args.
+    #
+    # Be SURE all int/bint args passed to this function have been converted from strings.
 
     global recalcs # Debugging counts, persistent.
     if fold_keywords_matcher is None:
@@ -172,7 +179,8 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
     flevel_list = [0] * len(vim_buffer_lines)
     calculate_foldlevels(flevel_list, vim_buffer_lines, shiftwidth,
                          lines_of_module_docstrings,
-                         lines_of_fun_and_class_docstrings)
+                         lines_of_fun_and_class_docstrings,
+                         increase_top_level_non_class_foldlevels)
     recalcs += 1 # Info for debugging.
 
     if not TESTING:
@@ -279,8 +287,11 @@ cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
 
 cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
                                         indent_spaces: cy.int, shiftwidth: cy.int,
+                                        #increase_top_level_non_class_foldlevels:bint=False,
+                                        #in_class_def:bint=False,
                                         docstring:bint=False):
-    """Return the new foldlevel and the new shiftlevel."""
+    """Return the new foldlevel and the new shiftlevel.  Called with `docstring=True`
+    when inside a docstring."""
     #curr_foldlevel: cy.int = foldlevel_stack[-1] # Use if simply incrementing.
     new_foldlevel: cy.int
     new_fold_indent_spaces: cy.int
@@ -288,6 +299,8 @@ cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
     new_foldlevel = indent_spaces // shiftwidth + 1
     if docstring:
         new_foldlevel += 1
+    #if in_class_def and increase_top_level_non_class_foldlevels:
+    #    new_foldlevel += 1
     new_fold_indent_spaces = indent_spaces + shiftwidth
     return new_foldlevel, new_fold_indent_spaces
 
@@ -309,8 +322,9 @@ cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
 #
 
 cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[str],
-                               shiftwidth: cy.int, lines_of_module_docstrings:cy.int,
-                               lines_of_fun_and_class_docstrings: cy.int):
+                               shiftwidth: cy.int, lines_of_module_docstrings: cy.int,
+                               lines_of_fun_and_class_docstrings: cy.int,
+                               increase_top_level_non_class_foldlevels: bint):
     """Do the actual calculations and return the foldlevel."""
     # States in the state machine.
     inside_fun_or_class_def: bint = False
