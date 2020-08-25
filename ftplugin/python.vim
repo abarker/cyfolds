@@ -70,7 +70,7 @@ if !exists('g:cyfolds_update_all_windows_for_buffer')
 endif
 
 if !exists('g:cyfolds_increase_top_level_non_class_foldlevels')
-    let g:cyfolds_increase_top_level_non_class_foldlevels=0
+    let g:cyfolds_increase_top_level_non_class_foldlevels = 0
 endif
 
 function! s:CyfoldsBufWinEnterInit()

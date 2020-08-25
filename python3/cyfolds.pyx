@@ -235,7 +235,7 @@ cdef (bint, bint) line_begins_fun_or_class_def(line: str, prev_nested: cy.int,
     begins_def: bint
     begins_with_c: bint
     begins_def = bool(matchobject)
-    begins_with_c = line[0] == "c" if line else False
+    begins_with_c = line[0] == "c" and line[1] == "l" if line else False
     begins_class_def = begins_def and begins_with_c
     return begins_def, begins_class_def
 
@@ -679,7 +679,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                     just_after_fun_or_class_def = ends_with_colon # Stop if no colon.
 
                 increase_non_class_foldlevel:bint = False
-                if increase_top_level_non_class_foldlevels and not begin_class_def:
+                if increase_top_level_non_class_foldlevels and len(
+                                        foldlevel_stack) == 1 and not begin_class_def:
                     increase_non_class_foldlevel = True
 
                 # New foldlevels, but application deferred until after possibly
