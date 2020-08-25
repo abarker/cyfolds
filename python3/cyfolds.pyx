@@ -288,7 +288,7 @@ cdef (cy.int, cy.int) decrease_foldlevel(indent_spaces: cy.int,
 
 cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
                                         indent_spaces: cy.int, shiftwidth: cy.int,
-                                        increase_foldlevel:bint=True,
+                                        extra_foldlevel:bint=True,
                                         docstring:bint=False):
     """Return the next foldlevel and the new shiftlevel.  Called with `docstring=True`
     when inside a docstring.  Note this isn't immediately applied; the functions
@@ -301,7 +301,7 @@ cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
     new_foldlevel = indent_spaces // shiftwidth + 1
     if docstring:
         new_foldlevel += 1
-    if increase_foldlevel:
+    if extra_foldlevel:
         new_foldlevel += 1
     new_fold_indent_spaces = indent_spaces + shiftwidth
     return new_foldlevel, new_fold_indent_spaces
@@ -572,7 +572,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
             processing_docstring_indent = True
             new_foldlevel, new_fold_indent_spaces = get_new_foldlevel(foldlevel_stack,
                                                               indent_spaces, shiftwidth,
-                                                              increase_foldlevel=False,
+                                                              extra_foldlevel=False,
                                                               docstring=True)
             prev_foldlevel = increase_foldlevel(foldlevel_stack,
                                                 fold_indent_spaces_stack,
