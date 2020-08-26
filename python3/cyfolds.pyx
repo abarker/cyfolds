@@ -233,10 +233,8 @@ cdef (bint, bint) line_begins_fun_or_class_def(line: str, prev_nested: cy.int,
     matchobject = fold_keywords_matcher.match(line, indent_spaces,)
 
     begins_def: bint
-    begins_with_c: bint
     begins_def = bool(matchobject)
-    begins_with_c = line[0] == "c" and line[1] == "l" if line else False
-    begins_class_def = begins_def and begins_with_c
+    begins_class_def = line and begins_def and line[0:2] == "cl"
     return begins_def, begins_class_def
 
 
