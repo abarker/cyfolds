@@ -69,9 +69,10 @@ if !exists('g:cyfolds_update_all_windows_for_buffer')
     let g:cyfolds_update_all_windows_for_buffer = 0
 endif
 
-if !exists('g:cyfolds_increase_top_level_non_class_foldlevels')
-    let g:cyfolds_increase_top_level_non_class_foldlevels = 0
+if !exists('g:cyfolds_increase_outermost_non_class_foldlevels')
+    let g:cyfolds_increase_outermost_non_class_foldlevels = 0
 endif
+
 
 function! s:CyfoldsBufWinEnterInit()
     " Initialize upon entering a buffer.

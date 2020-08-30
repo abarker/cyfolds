@@ -137,20 +137,20 @@ def call_get_foldlevels():
     lines_of_module_docstrings = int(vim_eval("g:cyfolds_lines_of_module_docstrings"))
     lines_of_fun_and_class_docstrings = int(vim_eval(
                                  "g:cyfolds_lines_of_fun_and_class_docstrings"))
-    increase_top_level_non_class_foldlevels = bool(int(vim_eval(
-                                 "g:cyfolds_increase_top_level_non_class_foldlevels")))
+    increase_outermost_non_class_foldlevels = bool(int(vim_eval(
+                                 "g:cyfolds_increase_outermost_non_class_foldlevels")))
 
     # Call the Cython function to do the actual computation (which leaves the values in
     # the Vim variable `b:cyfolds_foldlevel_array`).
     get_foldlevels(shiftwidth, lines_of_module_docstrings,
                    lines_of_fun_and_class_docstrings,
-                   increase_top_level_non_class_foldlevels)
+                   increase_outermost_non_class_foldlevels)
 
 
 cpdef list get_foldlevels(shiftwidth:cy.int=4,
                           lines_of_module_docstrings:cy.int=-1,
                           lines_of_fun_and_class_docstrings:cy.int=-1,
-                          increase_top_level_non_class_foldlevels:bint=False,
+                          increase_outermost_non_class_foldlevels:bint=False,
                           test_buffer: object = None):
     """Recalculate all the fold levels.  The `test_buffer` parameter is for
     passing in a mock of the `vim.current.buffer` object in debugging and
@@ -180,7 +180,7 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
     calculate_foldlevels(flevel_list, vim_buffer_lines, shiftwidth,
                          lines_of_module_docstrings,
                          lines_of_fun_and_class_docstrings,
-                         increase_top_level_non_class_foldlevels)
+                         increase_outermost_non_class_foldlevels)
     recalcs += 1 # Info for debugging.
 
     if not TESTING:
@@ -324,7 +324,7 @@ cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
 cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[str],
                                shiftwidth: cy.int, lines_of_module_docstrings: cy.int,
                                lines_of_fun_and_class_docstrings: cy.int,
-                               increase_top_level_non_class_foldlevels: bint):
+                               increase_outermost_non_class_foldlevels: bint):
     """Do the actual calculations and return the foldlevel."""
     # States in the state machine.
     inside_fun_or_class_def: bint = False
@@ -677,7 +677,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                     just_after_fun_or_class_def = ends_with_colon # Stop if no colon.
 
                 increase_non_class_foldlevel:bint = False
-                if increase_top_level_non_class_foldlevels and len(
+                if increase_outermost_non_class_foldlevels and len(
                                         foldlevel_stack) == 1 and not begin_class_def:
                     increase_non_class_foldlevel = True
 
