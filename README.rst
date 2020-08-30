@@ -220,7 +220,8 @@ Other settings
 
      let cyfolds_start_in_manual_method = 0
 
-* To disable automatic fold calculations on opening a Python buffer you can use:
+* To disable automatic fold calculations (and initial folding) on opening a
+  Python buffer you can use:
 
   .. code-block:: vim
 
@@ -232,22 +233,30 @@ Other settings
   to ``manual``.  To then switch to using folding you need to explicitly force
   the folds to be updated, such as with ``zuz`` or ``z,``.
 
-* To start Vim without any visible folding, just use this in your ``.vimrc``
-  along with any other folding options:
-
-  .. code-block:: vim
-
-     set nofoldenable
-
-  To then show the folds the Vim ``zi`` key sequence can be used to toggle the
-  ``foldenable`` setting on and off.
-
 * To also fix syntax highlighting on all fold updates, from the start of the
   file, use this setting (the default is 0, no syntax fixing):
 
   .. code-block:: vim
 
      let cyfolds_fix_syntax_highlighting_on_update = 1
+
+* To increase the foldlevel of all outermost (module-scope) elements except
+  for classes, use:
+
+  .. code-block:: vim
+
+     let cyfolds_increase_outermost_non_class_foldlevels = 1
+
+  This is nice because when the ``foldlevel`` value is 0 all the module-level
+  elements are folded, but when it is 1 all the elements except classes are
+  folded.  This puts module-level functions and class methods at the same level
+  of folding, which gives a nice API view.  This works well, for example, with
+  ``set foldlevelstart=1`` in the ``.vimrc``.
+
+  The only downside is that when ``foldlevel`` is 0 it takes two applications
+  of the builtin ``zo`` or ``za`` commands to open outermost elements which are
+  not classes.  The ``SuperFoldToggle`` function, described below, does not
+  have this problem.
 
 * To define the fold-updating function to update all the windows for the
   current buffer instead of just updating the current window, use:
@@ -257,10 +266,11 @@ Other settings
      let cyfolds_update_all_windows_for_buffer = 1
 
   The default is 0, to only update the folds in the current window.  That is
-  essentially what the built-in `zx` and `zX` commands do.  Updating all the
-  windows for the current buffer is convenient when you have multiple windows
-  for a buffer.  It is slightly slower (the folds for each such window need to
-  be set, but they only need to be calculated once).
+  essentially what the built-in ``zx`` and ``zX`` commands do.  Updating all
+  the windows for the current buffer is convenient when you have multiple
+  windows for a buffer.  It is only slightly slower than only updating the
+  current buffer (the folds for each such window need to be set, but they only
+  need to be calculated once).
 
 * To completely disable loading of the Cyfolds plugin use this in your
   ``.vimrc``:
@@ -307,6 +317,7 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
    let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
    let cyfolds_update_all_windows_for_buffer = 1 " Update all windows for buffer, not just current.
+   let cyfolds_increase_outermost_non_class_foldlevels = 0
 
    " General folding settings.
    set foldenable " Enable folding and show the current folds.
