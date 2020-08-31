@@ -20,13 +20,15 @@ files in the directory.
 # License details (MIT) can be found in the file LICENSE.
 #==============================================================================
 
-import glob, os
+import glob, os, sys
 from run_with_mocked_vim import get_fold_list
 
 def test_on_files(verbose=False):
     if verbose:
-        print("Comparing generated folds with saved data...")
+        print("\nComparing generated folds with saved data...")
+
     data_file_names = glob.glob("*.testdata")
+    error_found = False
     for data_file_name in data_file_names:
         if verbose:
             print("   ", data_file_name)
@@ -45,12 +47,15 @@ def test_on_files(verbose=False):
 
         for lnum, (comp_fold, data_fold) in enumerate(zip(computed_fold_list, data_fold_list)):
             if comp_fold != data_fold:
-                print("Error: Mismatch of computed value {} and test data value {} on line {} of file {}"
+                print("        Error: Mismatch of computed value {} and test data value {} on line {} of file {}"
                         .format(comp_fold, data_fold, lnum, data_file_name))
-                assert False
+                error_found = True
+                #sys.exit(1)
+    return error_found
 
 if __name__ == "__main__":
 
-    test_on_files(verbose=True)
-    print("Tests done and passed.")
+    error_found = test_on_files(verbose=True)
+    print()
+    print("Tests done and passed." if not error_found else "Tests FAILED")
 

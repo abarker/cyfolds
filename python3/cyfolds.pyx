@@ -137,20 +137,20 @@ def call_get_foldlevels():
     lines_of_module_docstrings = int(vim_eval("g:cyfolds_lines_of_module_docstrings"))
     lines_of_fun_and_class_docstrings = int(vim_eval(
                                  "g:cyfolds_lines_of_fun_and_class_docstrings"))
-    increase_outermost_non_class_foldlevels = bool(int(vim_eval(
-                                 "g:cyfolds_increase_outermost_non_class_foldlevels")))
+    increase_toplevel_non_class_foldlevels = bool(int(vim_eval(
+                                 "g:cyfolds_increase_toplevel_non_class_foldlevels")))
 
     # Call the Cython function to do the actual computation (which leaves the values in
     # the Vim variable `b:cyfolds_foldlevel_array`).
     get_foldlevels(shiftwidth, lines_of_module_docstrings,
                    lines_of_fun_and_class_docstrings,
-                   increase_outermost_non_class_foldlevels)
+                   increase_toplevel_non_class_foldlevels)
 
 
 cpdef list get_foldlevels(shiftwidth:cy.int=4,
                           lines_of_module_docstrings:cy.int=-1,
                           lines_of_fun_and_class_docstrings:cy.int=-1,
-                          increase_outermost_non_class_foldlevels:bint=False,
+                          increase_toplevel_non_class_foldlevels:bint=False,
                           test_buffer: object = None):
     """Recalculate all the fold levels.  The `test_buffer` parameter is for
     passing in a mock of the `vim.current.buffer` object in debugging and
@@ -180,7 +180,7 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
     calculate_foldlevels(flevel_list, vim_buffer_lines, shiftwidth,
                          lines_of_module_docstrings,
                          lines_of_fun_and_class_docstrings,
-                         increase_outermost_non_class_foldlevels)
+                         increase_toplevel_non_class_foldlevels)
     recalcs += 1 # Info for debugging.
 
     if not TESTING:
@@ -297,6 +297,8 @@ cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
     new_fold_indent_spaces: cy.int
 
     new_foldlevel = indent_spaces // shiftwidth + 1
+    #new_foldlevel = foldlevel_stack[-1] + 1 if foldlevel_stack else 0
+
     if docstring:
         new_foldlevel += 1
     if extra_foldlevel:
@@ -324,7 +326,7 @@ cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
 cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[str],
                                shiftwidth: cy.int, lines_of_module_docstrings: cy.int,
                                lines_of_fun_and_class_docstrings: cy.int,
-                               increase_outermost_non_class_foldlevels: bint):
+                               increase_toplevel_non_class_foldlevels: bint):
     """Do the actual calculations and return the foldlevel."""
     # States in the state machine.
     inside_fun_or_class_def: bint = False
@@ -349,6 +351,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
     prev_indent_spaces: cy.int = 0
     escape_char: bint = False
     processing_docstring_indent: bint = False
+    inside_toplevel_class: bint = False
 
     # String-related variables.
     in_single_quote_string: bint = False
@@ -501,13 +504,16 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
             elif ch == ")": nest_braces -= 1; continue
 
         #
-        # Back in loop over lines; calculate line's foldlevel based on computed info.
+        # Back to loop over lines; calculate line's foldlevel based on computed info.
         #
 
         if ends_with_triple_quote:
             lines_since_end_triple = 0
         elif begins_with_triple_quote:
             lines_since_end_triple = -1 # Note -1 is a dummy value that means "unset."
+
+        if len(foldlevel_stack) == 1:
+            inside_toplevel_class = False
 
         # Now that the line is processed the indent_spaces values are just used to
         # detect dedents and to set fold values.  Set the indent_spaces of continuation
@@ -597,8 +603,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
         if not is_empty or prev_line_has_a_continuation:
             # This part is the finite-state machine handling docstrings after fundef.
             begin_fun_or_class_def: bint
-            begin_class_def: bint
-            begin_fun_or_class_def, begin_class_def = line_begins_fun_or_class_def(
+            line_begins_class_def: bint
+            begin_fun_or_class_def, line_begins_class_def = line_begins_fun_or_class_def(
                                                                 line, prev_nested,
                                                                 in_string, indent_spaces)
             if DEBUG:
@@ -669,16 +675,18 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                 # Note: This state can be True at the same time as either
                 # `just_after_fun_or_class_def` or `just_after_fun_or_class_docstring`
                 # (e.g., a fundef right after a fundef).  Hence the copies of
-                # `new_foldlevel` and `new_fold_indent_spaces` lines values to set in
+                # `new_foldlevel` and `new_fold_indent_spaces` values to set in
                 # the `just_after_fun_or_class_def` state.
                 if nested or in_string or line_has_a_contination:
                     inside_fun_or_class_def = True
                 else:
                     just_after_fun_or_class_def = ends_with_colon # Stop if no colon.
 
+                # Handle option to increase foldlevel for toplevel non-class.
                 increase_non_class_foldlevel:bint = False
-                if increase_outermost_non_class_foldlevels and len(
-                                        foldlevel_stack) == 1 and not begin_class_def:
+                if line_begins_class_def and indent_spaces == 0:
+                    inside_toplevel_class = True
+                if increase_toplevel_non_class_foldlevels and not inside_toplevel_class:
                     increase_non_class_foldlevel = True
 
                 # New foldlevels, but application deferred until after possibly

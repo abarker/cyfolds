@@ -4,7 +4,7 @@ History
 2020-07-30
 ----------
 
-Added new global variable ``g:cyfolds_increase_outermost_non_class_foldlevels``.
+Added new global variable ``g:cyfolds_increase_toplevel_non_class_foldlevels``.
 
 2019-07-15
 ----------

@@ -240,12 +240,12 @@ Other settings
 
      let cyfolds_fix_syntax_highlighting_on_update = 1
 
-* To increase the foldlevel of all outermost (module-scope) elements except
-  for classes, use:
+* To increase the foldlevel of all toplevel (module-scope, with indent 0)
+  elements except for classes, use:
 
   .. code-block:: vim
 
-     let cyfolds_increase_outermost_non_class_foldlevels = 1
+     let cyfolds_increase_toplevel_non_class_foldlevels = 1
 
   This is nice because when the ``foldlevel`` value is 0 all the module-level
   elements are folded, but when it is 1 all the elements except classes are
@@ -254,7 +254,7 @@ Other settings
   ``set foldlevelstart=1`` in the ``.vimrc``.
 
   The only downside is that when ``foldlevel`` is 0 it takes two applications
-  of the builtin ``zo`` or ``za`` commands to open outermost elements which are
+  of the builtin ``zo`` or ``za`` commands to open toplevel elements which are
   not classes.  The ``SuperFoldToggle`` function, described below, does not
   have this problem.
 
@@ -291,17 +291,17 @@ educe folding), and decreased by the commands ``zm`` and ``zM`` (**m**\ ore
 folding).  The ``foldlevelstart`` setting is used to set the initial foldlevel
 when files are opened.
 
-Cyfolds always sets the foldlevels of folded lines to the indent level divided
-by the shiftwidth (except for freestanding docstrings, where folds have one
-extra level added to that value).  So the lines at the first level of indent
-always have foldlevel 0, foldable lines on the second level of indent have
-foldlevel 1, etc.  Setting ``foldlevel`` to 1, for example, will keep all folds
-for class and function definitions at the first indent level (0) open and close
-all the folds at higher indent levels (such as the methods of a class at
-0-level).  Setting ``foldlevel`` to 2 will keep foldable lines at the first and
-second level of indent unfolded, and so forth.  The same holds true for indents
-due to keywords which are not set to be folded (like, say, ``with``).  For
-consistency the folds inside them are nevertheless at the higher foldlevel.  
+Cyfolds sets the foldlevels of folded lines to the indent level divided by the
+shiftwidth (except for freestanding docstrings, where folds have one extra
+level added to that value).  So the lines at the first level of indent always
+have foldlevel 0, foldable lines on the second level of indent have foldlevel
+1, etc.  Setting ``foldlevel`` to 1, for example, will keep all folds for class
+and function definitions at the first indent level (0) open and close all the
+folds at higher indent levels (such as the methods of a class at 0-level).
+Setting ``foldlevel`` to 2 will keep foldable lines at the first and second
+level of indent unfolded, and so forth.  The same holds true for indents due to
+keywords which are not set to be folded (like, say, ``with``).  For consistency
+the folds inside them are nevertheless at the higher foldlevel.  
 
 These are the ``.vimrc`` settings I'm currently using:
 
@@ -317,7 +317,7 @@ These are the ``.vimrc`` settings I'm currently using:
    let cyfolds_no_initial_fold_calc = 0 " Whether to skip initial fold calculations.
    let cyfolds_fix_syntax_highlighting_on_update = 1 " Redo syntax highlighting on all updates.
    let cyfolds_update_all_windows_for_buffer = 1 " Update all windows for buffer, not just current.
-   let cyfolds_increase_outermost_non_class_foldlevels = 0
+   let cyfolds_increase_toplevel_non_class_foldlevels = 0
 
    " General folding settings.
    set foldenable " Enable folding and show the current folds.
