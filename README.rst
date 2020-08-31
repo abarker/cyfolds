@@ -251,12 +251,13 @@ Other settings
   elements are folded, but when it is 1 all the elements except classes are
   folded.  This puts module-level functions and class methods at the same level
   of folding, which gives a nice API view.  This works well, for example, with
-  ``set foldlevelstart=1`` in the ``.vimrc``.
+  ``set foldlevelstart=1`` in the ``.vimrc``.  The builtin ``zm`` and ``zr``
+  commands can be used to go back and forth between the views.
 
-  The only downside is that when ``foldlevel`` is 0 it takes two applications
-  of the builtin ``zo`` or ``za`` commands to open toplevel elements which are
-  not classes.  The ``SuperFoldToggle`` function, described below, does not
-  have this problem.
+  The only minor downside is that when ``foldlevel`` is 0 it takes two
+  applications of the builtin ``zo`` or ``za`` commands to open folded, toplevel,
+  non-class elements.  The ``SuperFoldToggle`` function, described below, does
+  not have this problem.
 
 * To define the fold-updating function to update all the windows for the
   current buffer instead of just updating the current window, use:
