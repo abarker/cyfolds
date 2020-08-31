@@ -385,13 +385,8 @@ endfunction
 
 
 " ==============================================================================
-" ==== Modify fold line to look good with folded Python. =======================
+" ==== Modify the fold line (foldtext) to look good with folded Python. ========
 " ==============================================================================
-
-function! s:IsEmpty(line)
-    " Currently unused.
-    return line =~ '^\s*$'
-endfunction
 
 function! CyfoldsFoldtext()
     let num_lines = v:foldend - v:foldstart + 1
@@ -399,7 +394,13 @@ function! CyfoldsFoldtext()
     let line_indent = indent(foldstart)
 
     if foldstart > 0
+        " Set folding to max of curr line or prev line indents.
         let line_indent = max([line_indent, indent(foldstart-1)])
+
+       " If the current line is empty then increase the foldlevel by shiftwidth.
+       if getline(foldstart) =~ '^\s*$' 
+           let line_indent += &shiftwidth
+       endif
     endif
 
     return repeat(' ', line_indent) . '+---- ' . num_lines . ' lines ' . v:folddashes
