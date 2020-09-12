@@ -397,10 +397,11 @@ function! CyfoldsFoldtext()
         " Set folding to max of curr line or prev line indents.
         let line_indent = max([line_indent, indent(foldstart-1)])
 
-       " If the current line is empty then increase the foldlevel by shiftwidth.
-       if getline(foldstart) =~ '^\s*$' 
-           let line_indent += &shiftwidth
-       endif
+        " If the current line is empty and the previous line doesn't end a
+        " docstring then increase the foldlevel by shiftwidth.
+        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) !=~ '.*("""|\'\'\')\s*$' 
+            let line_indent += &shiftwidth
+        endif
     endif
 
     return repeat(' ', line_indent) . '+---- ' . num_lines . ' lines ' . v:folddashes
