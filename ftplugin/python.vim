@@ -399,7 +399,8 @@ function! CyfoldsFoldtext()
 
         " If the current line is empty and the previous line doesn't end a
         " docstring then increase the foldlevel by shiftwidth.
-        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) !=~ '.*("""|\'\'\')\s*$' 
+        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) !~# '.*"""\s*$'
+                                        \ && getline(foldstart-1) !~# ".*'''\s*$"
             let line_indent += &shiftwidth
         endif
     endif
