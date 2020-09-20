@@ -7,10 +7,19 @@
 " License details (MIT) can be found in the file LICENSE.
 "==============================================================================
 
-if exists("b:did_ftplugin")
+" For some reason using the regular 'b:did_ftplugin' causes the folding to be
+" wrong on Vim 7.4 on older Linux Mint, but works fine with Vim 8.0 on Ubuntu.
+if exists("b:cyfolds_did_ftplugin")
     finish
 endif
-let b:did_ftplugin = 1
+let b:cyfolds_did_ftplugin = 1
+
+let b:undo_ftplugin = "setl foldmethod< foldtext< foldexpr< foldenable< ofu<"
+                   \ . "| unlet! b:cyfolds_suppress_insert_mode_switching"
+                   \ . " w:cyfolds_saved_foldmethod_update"
+                   \ . " w:cyfolds_saved_foldmethod_insert"
+                   \ . " b:cyfolds_foldlevel_array"
+                   \ . " b:cyfolds_did_ftplugin"
 
 let s:cpo_save = &cpo
 set cpo&vim " No vim compatible mode; reset cpo to vim default.
@@ -19,16 +28,10 @@ if !exists('g:cyfolds')
     let g:cyfolds = 1
 endif
 
-if exists('g:loaded_cyfolds') || &cp || g:cyfolds == 0
+if exists('g:loaded_cyfolds') || &compatible || g:cyfolds == 0
     finish " Don't run if already loaded or user set g:cyfolds=0.
 endif
 let g:loaded_cyfolds = 1
-
-let b:undo_ftplugin = "setl foldmethod< foldtext< foldexpr< foldenable< ofu<"
-                   \ . "| unlet! b:cyfolds_suppress_insert_mode_switching"
-                   \ . " w:cyfolds_saved_foldmethod_update"
-                   \ . " w:cyfolds_saved_foldmethod_insert"
-                   \ . " b:cyfolds_foldlevel_array"
 
 
 " ==============================================================================
