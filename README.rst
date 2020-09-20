@@ -25,16 +25,10 @@ A screenshot of some example code with folding is shown here:
           width="500">
    </p>
 
-Folding can be customized to occur for various keywords and to change the
-number of docstring lines to show.  By default all the text in docstrings is
-left unfolded after definitions with the ``class``, ``def``, or ``async def``
-keywords, and full module doctrings are shown.
-
-All the folds are calculated in one pass over the file, and the values are
-cached.  The per-buffer cached values are returned if there have been no
-changes in the respective buffer since the last call.  See the Cython code file
-for more details of the algorithm.  The plugin is only loaded when a Python
-file is opened.
+Folding can be customized to occur for various keywords, and the number of
+docstring lines to show can be modified.  By default all the text in docstrings
+is left unfolded after definitions with the ``class``, ``def``, or ``async
+def`` keywords, and full module doctrings are shown.
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because in insert mode Vim updates the folds on every character,
