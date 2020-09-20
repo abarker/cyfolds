@@ -31,8 +31,8 @@ is left unfolded after definitions with the ``class``, ``def``, or ``async
 def`` keywords, and full module doctrings are shown.
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
-mode.  This is because in insert mode Vim updates the folds on every character,
-which is slow and is not really needed.
+mode.  This is because by default, when in insert mode, Vim updates the folds
+on every character.  That is slow and is not really needed.
 
 Installation
 ------------
