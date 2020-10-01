@@ -111,7 +111,7 @@ In addition to the usual Vim folding keys (see ``:help fold-commands`` in Vim),
 Cyfolds adds two new key bindings:
 
 * The ``zuz`` key sequence is used to force the folds to be updated.  (This is
-  the same as the FastFolds mapping, but only applies in Python code.)  When
+  the same as the FastFold mapping, but only applies in Python code.)  When
   the ``foldmethod`` is set to ``manual`` folds always need to be explicitly
   updated either with ``zuz`` or one of the Vim commands.  When the
   ``foldmethod`` is set to ``expr`` folds are updated after inserts but can
@@ -394,15 +394,15 @@ vim-stay
 The vim-stay plugin, which persists the state of the folds across Vim
 invocations, can be used along with this plugin.
 
-FastFolds
-~~~~~~~~~
+FastFold
+~~~~~~~~
 
-FastFolds does not seem to interfere with Cyfolds and vice versa outside a
-Python buffer.  FastFolds with Cyfolds does introduce a very slight delay when
+FastFold does not seem to interfere with Cyfolds and vice versa outside a
+Python buffer.  FastFold with Cyfolds does introduce a very slight delay when
 opening and closing folds in Python buffers.  That is because it remaps the
-folding/unfolding keys to update the folds each time.  Disabling FastFolds for
+folding/unfolding keys to update the folds each time.  Disabling FastFold for
 Python files eliminates this delay (but also the automatic fold updating on
-those fold commands).  The ``.vimrc`` command to disable FastFolds only for
+those fold commands).  The ``.vimrc`` command to disable FastFold only for
 Python files is:
 
 .. code-block:: vim
