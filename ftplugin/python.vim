@@ -110,6 +110,7 @@ function! s:CyfoldsBufWinEnterInit()
     " Switch to manual mode if that was the chosen foldmethod.
     if g:cyfolds_start_in_manual_method == 1 && &foldmethod != 'manual'
         setlocal foldmethod=manual
+        " OLD way in two lines below, delete at some point.
         "call s:BufferWindowsSetFoldmethod('manual', '', 0)
         "let timer = timer_start(s:timer_wait, 'SetFoldmethodManual')
     endif
