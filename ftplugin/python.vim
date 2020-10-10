@@ -415,41 +415,42 @@ endfunction
 " ==== Older function to force a foldupdate only in current window (unused).====
 " ==============================================================================
 
-let s:timer_wait = 500 " Timer wait in milliseconds, time before switch to manual.
+"let s:timer_wait = 500 " Timer wait in milliseconds, time before switch to manual.
+"
+"function! SetFoldmethodManual(timer)
+"    " This is called from a timer to set foldmethod to manual after it has been set to expr.
+"    " If the foldmethod is immediately set to manual without the delay the side-effect of
+"    " recalculating folds (due to setting to expr) does not occur.
+"    setlocal foldmethod=manual
+"endfunction
+"
+"function! CyfoldsForceCurrentWindowOnlyFoldUpdate()
+"    " Force a fold update.  Unlike zx and zX this does not change the
+"    " open/closed state of any of the folds.
+"    "
+"    " Instead of using windo to set the foldmethods and get the fold-recalculate
+"    " side-effect this method uses a small timer delay on resetting to manual
+"    " foldmethod.
+"    setlocal foldenable
+"    let w:cyfolds_saved_foldmethod_update = &l:foldmethod
+"
+"    setlocal foldmethod=manual
+"    if w:cyfolds_saved_foldmethod_update != 'manual' " All methods except manual update folds.
+"        let &l:foldmethod = w:cyfolds_saved_foldmethod_update
+"    else
+"        setlocal foldmethod=expr
+"        " Restore to manual mode with a delayed timer command in order for the change
+"        " to expr method above to register with vim and invoke its side-effect of
+"        " updating all the folds.  Just setting to manual here does not work.
+"        let timer = timer_start(s:timer_wait, 'SetFoldmethodManual')
+"    endif
+"    if g:cyfolds_fix_syntax_highlighting_on_update
+"        call FixSyntaxHighlight()
+"    endif
+"endfunction
 
-function! SetFoldmethodManual(timer)
-    " This is called from a timer to set foldmethod to manual after it has been set to expr.
-    " If the foldmethod is immediately set to manual without the delay the side-effect of
-    " recalculating folds (due to setting to expr) does not occur.
-    setlocal foldmethod=manual
-endfunction
 
-function! CyfoldsForceCurrentWindowOnlyFoldUpdate()
-    " Force a fold update.  Unlike zx and zX this does not change the
-    " open/closed state of any of the folds.
-    "
-    " Instead of using windo to set the foldmethods and get the fold-recalculate
-    " side-effect this method uses a small timer delay on resetting to manual
-    " foldmethod.
-    setlocal foldenable
-    let w:cyfolds_saved_foldmethod_update = &l:foldmethod
-
-    setlocal foldmethod=manual
-    if w:cyfolds_saved_foldmethod_update != 'manual' " All methods except manual update folds.
-        let &l:foldmethod = w:cyfolds_saved_foldmethod_update
-    else
-        setlocal foldmethod=expr
-        " Restore to manual mode with a delayed timer command in order for the change
-        " to expr method above to register with vim and invoke its side-effect of
-        " updating all the folds.  Just setting to manual here does not work.
-        let timer = timer_start(s:timer_wait, 'SetFoldmethodManual')
-    endif
-    if g:cyfolds_fix_syntax_highlighting_on_update
-        call FixSyntaxHighlight()
-    endif
-endfunction
-
-
+" Finish up.
 let &cpo = s:cpo_save
 unlet s:cpo_save
 
