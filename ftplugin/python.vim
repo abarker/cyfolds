@@ -405,7 +405,7 @@ function! CyfoldsFoldtext()
         " class or def (or other colon-ended command) then increase
         " the foldlevel by shiftwidth.  This is so functions without
         " docstrings have indented foldtext below them, looks nicer.
-        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) !=~ '.*:\s*#.*$'
+        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) =~ '.*:\s*#*.*$'
             let line_indent += &shiftwidth
         endif
 
