@@ -402,11 +402,19 @@ function! CyfoldsFoldtext()
         let line_indent = max([line_indent, indent(foldstart-1)])
 
         " If the current line is empty and the previous line doesn't end a
-        " docstring then increase the foldlevel by shiftwidth.
-        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) !~# '.*"""\s*$'
-                                        \ && getline(foldstart-1) !~# ".*'''\s*$"
+        " class or def (or other colon-ended command) then increase
+        " the foldlevel by shiftwidth.  This is so functions without
+        " docstrings have indented foldtext below them, looks nicer.
+        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) !=~ '.*:\s*#.*$'
             let line_indent += &shiftwidth
         endif
+
+        "" If the current line is empty and the previous line doesn't end a
+        "" docstring then increase the foldlevel by shiftwidth.
+        "if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) !~# '.*"""\s*$'
+        "                                \ && getline(foldstart-1) !~# ".*'''\s*$"
+        "    let line_indent += &shiftwidth
+        "endif
     endif
 
     return repeat(' ', line_indent) . '+---- ' . num_lines . ' lines ' . v:folddashes
