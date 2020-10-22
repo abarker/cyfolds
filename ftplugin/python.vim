@@ -400,14 +400,20 @@ function! CyfoldsFoldtext()
     if foldstart > 0
         " Set folding to max of curr line or prev line indents.
         let line_indent = max([line_indent, indent(foldstart-1)])
+        " When continued fun args indented, prev line is indented maybe far.
+        " Below two lines thing could help, but breaks empty line later as is.
+        "let prev_indent = min([line_indent-&shiftwidth, indent(foldstart-1)])
+        "let line_indent = max([line_indent, prev_indent)])
 
         " If the current line is empty and the previous line doesn't end a
         " class or def (or other colon-ended command) then increase
         " the foldlevel by shiftwidth.  This is so functions without
         " docstrings have indented foldtext below them, looks nicer.
         " (Note that \{-} is non-greedy * pattern, \= is zero or one.)
-        if getline(foldstart) =~ '^\s*$'  && getline(foldstart-1) =~ '^.\{-}:\{1}\s\{-}\(#.\{-}\)\=$'
-            let line_indent += &shiftwidth
+        if getline(foldstart) =~ '^\s*$'
+            if getline(foldstart-1) =~ '^.\{-}:\{1}\s\{-}\(#.\{-}\)\=$'
+                let line_indent += &shiftwidth
+            endif
         endif
 
         "" If the current line is empty and the previous line doesn't end a
