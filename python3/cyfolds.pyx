@@ -327,7 +327,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                                shiftwidth: cy.int, lines_of_module_docstrings: cy.int,
                                lines_of_fun_and_class_docstrings: cy.int,
                                increase_toplevel_non_class_foldlevels: bint):
-    """Do the actual calculations and return the foldlevel."""
+    """Do the actual calculations and return the foldlevel. A big C-style function doing
+    a single pass through the text."""
     # States in the state machine.
     inside_fun_or_class_def: bint = False
     just_after_fun_or_class_def: bint = False
