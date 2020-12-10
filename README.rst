@@ -400,8 +400,8 @@ FastFold
 ~~~~~~~~
 
 FastFold does not seem to interfere with Cyfolds and vice versa outside a
-Python buffer.  FastFold with Cyfolds does introduce a very slight delay when
-opening and closing folds in Python buffers.  That is because it remaps the
+Python buffer.  FastFold with Cyfolds in a Python buffer does introduce a very
+slight delay when opening and closing folds.  That is because it remaps the
 folding/unfolding keys to update the folds each time.  Disabling FastFold for
 Python files eliminates this delay (but also the automatic fold updating on
 those fold commands).  Cyfolds handles things like suppressing fold updates in
