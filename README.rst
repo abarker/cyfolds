@@ -404,8 +404,9 @@ Python buffer.  FastFold with Cyfolds does introduce a very slight delay when
 opening and closing folds in Python buffers.  That is because it remaps the
 folding/unfolding keys to update the folds each time.  Disabling FastFold for
 Python files eliminates this delay (but also the automatic fold updating on
-those fold commands).  The ``.vimrc`` command to disable FastFold only for
-Python files is:
+those fold commands).  Cyfolds handles things like suppressing fold updates in
+insert mode and forcing updates (`zuz`) by itself, so turning off FastFold for
+Python buffers is recommended.  The FastFold ``.vimrc`` command for that is:
 
 .. code-block:: vim
 
