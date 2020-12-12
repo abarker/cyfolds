@@ -128,8 +128,8 @@ Cyfolds adds two new key bindings:
   which always reset the open/closed states of folds according to
   ``foldlevel`` and which do not work with manual foldmethod.)
   
-  The ``zuz`` command sets ``foldenable`` for the buffer if it is not already
-  set.  The key sequence is mapped to the function call
+  The ``zuz`` command sets ``foldenable`` locally for the window if it is not
+  already set.  The key sequence is mapped to the function call
   ``CyfoldsForceFoldUpdate()``.
 
 * The ``z,`` key sequence toggles the ``foldmethod`` setting between ``expr``
@@ -146,8 +146,8 @@ Cyfolds adds two new key bindings:
   small but noticeable delay in quickly moving in and out of insert mode,
   depending on the editing speed and the computer's speed.
   
-  The ``z,`` command sets ``foldenable`` for the buffer if it is not already
-  set.  The key sequence is mapped to the function call
+  The ``z,`` command sets ``foldenable`` locally for the window if it is not
+  already set.  The key sequence is mapped to the function call
   ``CyfoldsToggleManualFolds()``.
 
 Customizable settings
