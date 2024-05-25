@@ -23,9 +23,10 @@ GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
         "annotation_typing": True, # Type info from PEP484 annotations, keep True.
         "infer_types": True, # Default is None, keep true.
         #"infer_types.verbose": True,
-        "optimize.use_switch": True, # Default is True.
-        "optimize.unpack_method_calls": True, # Default is True.
+        ####"optimize.use_switch": True, # Default is True.
+        ####"optimize.unpack_method_calls": True, # Default is True.
         "language_level": 3,
+        "binding": False, ####
 
         #"warn.undeclared": True,
         #"warn.unreachable": True,
@@ -36,7 +37,7 @@ GLOBAL_CYTHON_DIRECTIVES={ # Set as compiler_directives kwarg to cythonize.
         }
 
 extensions = [Extension("cyfolds", ["cyfolds.pyx"],
-                        extra_compile_args=["-O3"],
+                        ####extra_compile_args=["-O3"],
                         #extra_compile_args=["-O1"],
                         include_dirs=[],
                         libraries=[],

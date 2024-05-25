@@ -129,7 +129,7 @@ augroup cyfolds_buf_new_init
 augroup END
 
 
-python3 << ----------------------- PythonCode ----------------------------------
+python3 << -----------------------PythonCode----------------------------------
 """
     Python initialization code.  Import the functions `call_get_foldlevels`,
     and `setup_regex_pattern`.  Initialize the regex patterns (of keywords to
@@ -154,7 +154,7 @@ sys.path.insert(0, python_root_dir)
 
 from cyfolds import setup_regex_pattern, call_get_foldlevels
 setup_regex_pattern(cyfolds_fold_keywords)
------------------------ PythonCode ----------------------------------
+-----------------------PythonCode----------------------------------
 
 
 " ==============================================================================
@@ -191,7 +191,7 @@ function! GetPythonFoldViaCython(lnum)
     if a:lnum == 1 && s:CyfoldsChangeDetector()
         python3 call_get_foldlevels()
     endif
-    " echom a:lnum
+    echom a:lnum
     return b:cyfolds_foldlevel_array[a:lnum-1]
 endfunction
 
@@ -379,10 +379,10 @@ endfunction
 
 function! CyfoldsUpdateFoldKeywords()
    " Dynamically assign the folding keywords to those on the string `keyword_str`.
-python3 << ----------------------- PythonCode ----------------------------------
+python3 << -----------------------PythonCode----------------------------------
 cyfolds_fold_keywords = vim_eval("g:cyfolds_fold_keywords")
 setup_regex_pattern(cyfolds_fold_keywords)
------------------------ PythonCode ----------------------------------
+-----------------------PythonCode----------------------------------
     let b:cyfolds_keyword_change = 1
     call CyfoldsForceFoldUpdate()
 endfunction

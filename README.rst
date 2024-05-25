@@ -65,9 +65,9 @@ recent Linux and Vim distribution, as well as on Windows with a recent Vim.
 
    .. code-block:: bash
 
-      python3 -m pip install cython setuptools --user --upgrade
+      pip install "cython<3.0" setuptools --user --upgrade
 
-   Replace ``python3`` with whatever command you use to invoke Python 3.
+   Note that the plugin does not work with Cython 3.0 for some reason.
 
 4. Now change directories and go to the cloned repo and into the ``python3``
    subdirectory.   Run the Python script named ``compile.py`` that is located
