@@ -54,6 +54,7 @@ ext_modules = cythonize(extensions,
 setup(
     name="cyfolds",
     ext_modules=ext_modules,
+    install_requires=["cython<1"],
     zip_safe=False, # Zipped egg file will not work with cimport for pxd files.
 )
 

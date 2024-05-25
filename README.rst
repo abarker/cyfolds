@@ -43,13 +43,12 @@ support.  It has currently only been compiled and tested on Vim 8.0 and Neovim
 recent Linux and Vim distribution, as well as on Windows with a recent Vim.
 
 1. If you use the builtin Vim 8 package manager just clone this GitHub repo
-   into the appropriate subdirectory of your ``~/.vim/pack`` directory.
-   Similarly, if you use pathogen just clone this GitHub repo into the
-   ``~/.vim/bundle`` directory.
+   into your ``~/.vim/pack/plugins/start`` directory.  Similarly, if you use
+   pathogen just clone this GitHub repo into the ``~/.vim/bundle`` directory.
 
 2. The C code produced by Cython needs to be compiled before use.  In order to
-   do this you need to have a C compiler installed.  On Ubuntu or Debian
-   systems you can type:
+   compile the code you need to have a C compiler installed.  On Ubuntu or
+   Debian systems you can type:
 
    .. code-block:: bash
 
@@ -67,7 +66,8 @@ recent Linux and Vim distribution, as well as on Windows with a recent Vim.
 
       pip install "cython<3.0" setuptools --user --upgrade
 
-   Note that the plugin does not work with Cython 3.0 for some reason.
+   Note that the plugin does not work with Cython 3.0 for some reason
+   (string handling was changed).
 
 4. Now change directories and go to the cloned repo and into the ``python3``
    subdirectory.   Run the Python script named ``compile.py`` that is located
@@ -77,7 +77,7 @@ recent Linux and Vim distribution, as well as on Windows with a recent Vim.
 
       python3 ./compile.py
       
-   In Linux just `./compile.py` should work.  You can alternately run
+   In Linux just ``./compile.py`` should work.  You can alternately run
 
    .. code-block:: bash
    
