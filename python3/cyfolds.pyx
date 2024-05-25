@@ -146,7 +146,6 @@ def call_get_foldlevels():
                    lines_of_fun_and_class_docstrings,
                    increase_toplevel_non_class_foldlevels)
 
-
 cpdef list get_foldlevels(shiftwidth:cy.int=4,
                           lines_of_module_docstrings:cy.int=-1,
                           lines_of_fun_and_class_docstrings:cy.int=-1,
@@ -156,7 +155,7 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
     passing in a mock of the `vim.current.buffer` object in debugging and
     testing.
 
-    The return value is ONLY used in the mocking test function.  The actual Vim
+    The return value is unused EXCEPT in the mocking test function.  The actual Vim
     code uses the array of values set in `b:cyfolds_foldlevel_array`."""
     # This function is cpdef instead of cdef only because some vim-mocking debugging
     # code (`run_with_mocked_vim.py`) expects to be able to call it directly.  This
@@ -183,7 +182,10 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
                          increase_toplevel_non_class_foldlevels)
     recalcs += 1 # Info for debugging.
 
-    if not TESTING:
+    USE_PY3EVAL = False # https://vi.stackexchange.com/questions/20403/how-to-assign-a-python-list-to-a-vim-variable-and-escape-its-strings-correctly/20404
+    if USE_PY3EVAL: # Not correct now, consider if more effient to use here or in main Python code.
+        vim_set_array_command = 'let b:cyfolds_foldlevel_array = py3eval("flevel_list")'
+    elif not TESTING:
         foldlevel_strings = ["{}".format(i) for i in flevel_list]
         joined_foldlevel_strings = ",".join(foldlevel_strings)
         vim_set_array_command = "let b:cyfolds_foldlevel_array = [{}]".format(
@@ -328,8 +330,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                                lines_of_fun_and_class_docstrings: cy.int,
                                increase_toplevel_non_class_foldlevels: bint):
     """Do the actual calculations and return the foldlevel. A big C-style function doing
-    a single pass through the text.  The return values are by way of the `foldlevel_list`
-    passed in."""
+    a single pass through the text.  The return values are passed back to the higher-level
+    function by way of the `foldlevel_list` passed in."""
     # States in the state machine.
     inside_fun_or_class_def: bint = False
     just_after_fun_or_class_def: bint = False
