@@ -151,9 +151,9 @@ cpdef list get_foldlevels(shiftwidth:cy.int=4,
                           lines_of_fun_and_class_docstrings:cy.int=-1,
                           increase_toplevel_non_class_foldlevels:bint=False,
                           test_buffer: object = None):
-    """Recalculate all the fold levels.  The `test_buffer` parameter is for
-    passing in a mock of the `vim.current.buffer` object in debugging and
-    testing.
+    """Recalculate all the fold levels, in a list.  The `test_buffer` parameter
+    is for passing in a mock of the `vim.current.buffer` object in debugging
+    and testing.
 
     The return value is unused EXCEPT in the mocking test function.  The actual Vim
     code uses the array of values set in `b:cyfolds_foldlevel_array`."""
@@ -310,10 +310,10 @@ cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
 
 
 cdef bint is_in_string(in_single_quote_string: bint, in_single_quote_docstring: bint,
-                 in_double_quote_string: bint, in_double_quote_docstring: bint) nogil:
+                 in_triple_quote_string: bint, in_triple_quote_docstring: bint) nogil:
     """Combine the separate string conditions into a single in-string condition."""
     return (in_single_quote_string or in_single_quote_docstring or
-            in_double_quote_string or in_double_quote_docstring)
+            in_triple_quote_string or in_triple_quote_docstring)
 
 
 cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
@@ -359,9 +359,9 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
 
     # String-related variables.
     in_single_quote_string: bint = False
-    in_double_quote_string: bint = False
+    in_triple_quote_string: bint = False
     in_single_quote_docstring: bint = False
-    in_double_quote_docstring: bint = False
+    in_triple_quote_docstring: bint = False
 
     # Nesting in different bracket types.
     nest_parens: cy.int = 0
@@ -437,7 +437,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
             ch = line[i]
 
             in_string = is_in_string(in_single_quote_string, in_single_quote_docstring,
-                                     in_double_quote_string, in_double_quote_docstring)
+                                     in_triple_quote_string, in_triple_quote_docstring)
             nested = is_nested(nest_parens, nest_brackets, nest_braces)
 
             # String escape char.
@@ -466,25 +466,25 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
             # Strings.
             elif ch == '"' and not char_is_escaped:
                 if (i + 2 < line_len and line[i+1] == '"' and line[i+2] == '"'
-                        and not in_double_quote_string): # Note """ can be concat like " ""
-                    if in_double_quote_docstring or not in_string:
-                        if in_single_quote_docstring or in_double_quote_docstring:
+                        and not in_triple_quote_string): # Note """ can be concat like " ""
+                    if in_triple_quote_docstring or not in_string:
+                        if in_single_quote_docstring or in_triple_quote_docstring:
                             ends_with_triple_quote = True # Provisional; may toggle off.
                         elif ((i == indent_spaces or # Note in_string is false here.
                                i == indent_spaces + 1 and line[indent_spaces] == "r")
                                             and not prev_line_has_a_continuation):
                             begins_with_triple_quote = True
                             lines_since_begin_triple = 0
-                        in_double_quote_docstring = not in_double_quote_docstring
+                        in_triple_quote_docstring = not in_triple_quote_docstring
                     i += 2
-                elif in_double_quote_string or not in_string:
-                    in_double_quote_string = not in_double_quote_string
+                elif in_triple_quote_string or not in_string:
+                    in_triple_quote_string = not in_triple_quote_string
                 continue
             elif ch == "'" and not char_is_escaped:
                 if (i + 2 < line_len and line[i+1] == "'" and line[i+2] == "'"
                         and not in_single_quote_string): # Note ''' can be concat like ' ''
                     if in_single_quote_docstring or not in_string:
-                        if in_single_quote_docstring or in_double_quote_docstring:
+                        if in_single_quote_docstring or in_triple_quote_docstring:
                             ends_with_triple_quote = True # Provisional; may toggle off.
                         elif ((i == indent_spaces or # Note in_string is false here.
                                i == indent_spaces + 1 and line[indent_spaces] == "r")
@@ -532,7 +532,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
 
         # Consolidate the separate variables checking if in a string or inside brackets.
         in_string = is_in_string(in_single_quote_string, in_single_quote_docstring,
-                                 in_double_quote_string, in_double_quote_docstring)
+                                 in_triple_quote_string, in_triple_quote_docstring)
         nested = is_nested(nest_parens, nest_brackets, nest_braces)
 
         #
