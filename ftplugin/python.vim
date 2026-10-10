@@ -138,21 +138,27 @@ python3 << -----------------------PythonCode----------------------------------
 import sys
 from os.path import normpath, join
 import vim
-
-import cyfolds
-# These vars are set in cyfolds.py to try to accomodate slowness issues when in Neovim.
-# https://github.com/neovim/neovim/issues/7063
-vim_eval = cyfolds.vim_eval
-#vim_command = cyfolds.vim_command # Defined but no currently used here.
-#vim_current_buffer = cyfolds.vim_current_buffer # Defined but not currently used here.
+vim_eval = vim.eval
 
 # Put the .vim directory's python3 subdirectory on sys.path so the plugin can be imported.
 vimhome = vim_eval("s:vimhome")
-cyfolds_fold_keywords = vim_eval("cyfolds_fold_keywords")
 python_root_dir = normpath(join(vimhome, 'python3'))
 sys.path.insert(0, python_root_dir)
 
-from cyfolds import setup_regex_pattern, call_get_foldlevels
+# Use the compiled Cython module if it is available, otherwise the pure-Python one.
+# When no compiled module matches this Python version, `import cyfolds` can
+# instead import any directory named "cyfolds" on sys.path (such as the plugin's
+# own directory) as an empty namespace package, so check for a needed function.
+try:
+    import cyfolds as cyfolds_module
+    cyfolds_module.call_get_foldlevels
+except (ImportError, AttributeError):
+    import pyfolds as cyfolds_module
+
+cyfolds_fold_keywords = vim_eval("cyfolds_fold_keywords")
+
+setup_regex_pattern = cyfolds_module.setup_regex_pattern
+call_get_foldlevels = cyfolds_module.call_get_foldlevels
 setup_regex_pattern(cyfolds_fold_keywords)
 -----------------------PythonCode----------------------------------
 

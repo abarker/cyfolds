@@ -44,6 +44,6 @@ pip-delete-this-directory.txt
 
 # Cython --inplace build dir, generated C code, and generated .so executables.
 build
-.c
-.so
+*.c
+*.so
 

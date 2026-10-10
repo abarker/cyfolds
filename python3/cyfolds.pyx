@@ -299,14 +299,29 @@ cdef (cy.int, cy.int) get_new_foldlevel(foldlevel_stack: List[cy.int],
     new_fold_indent_spaces: cy.int
 
     new_foldlevel = indent_spaces // shiftwidth + 1
-    #new_foldlevel = foldlevel_stack[-1] + 1 if foldlevel_stack else 0
 
     if docstring:
         new_foldlevel += 1
     if extra_foldlevel:
         new_foldlevel += 1
-    new_fold_indent_spaces = indent_spaces + shiftwidth
+    # Indents that aren't a multiple of shiftwidth (e.g., three-space indents with
+    # shiftwidth=4) can give a nested fold the same level as its enclosing fold.
+    if new_foldlevel <= foldlevel_stack[-1]:
+        new_foldlevel = foldlevel_stack[-1] + 1
+    # This is the minimum fold indent; see `get_body_fold_indent` for the actual one.
+    new_fold_indent_spaces = indent_spaces + 1
     return new_foldlevel, new_fold_indent_spaces
+
+
+cdef cy.int get_body_fold_indent(min_fold_indent_spaces: cy.int, indent_spaces: cy.int,
+                                 line_is_only_comment: bint, shiftwidth: cy.int):
+    """Return the fold indent for a fold whose first body line has indent
+    `indent_spaces`.  Using the actual body indent (rather than assuming it is the
+    def indent plus `shiftwidth`) handles indents like three spaces with
+    shiftwidth=4.  Comments can be indented arbitrarily, so their indent is capped."""
+    if line_is_only_comment:
+        indent_spaces = min(indent_spaces, min_fold_indent_spaces - 1 + shiftwidth)
+    return max(indent_spaces, min_fold_indent_spaces)
 
 
 cdef bint is_in_string(in_single_quote_string: bint, in_single_quote_docstring: bint,
@@ -325,7 +340,9 @@ cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
 # The main function for calculating foldlevels.
 #
 
-cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[str],
+# Note `buffer_lines` must be `object`, since Cython 3 enforces `List` annotations
+# as exact list types and Vim passes in a `vim.buffer` object.
+cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: object,
                                shiftwidth: cy.int, lines_of_module_docstrings: cy.int,
                                lines_of_fun_and_class_docstrings: cy.int,
                                increase_toplevel_non_class_foldlevels: bint):
@@ -355,6 +372,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
     prev_indent_spaces: cy.int = 0
     escape_char: bint = False
     processing_docstring_indent: bint = False
+    docstring_fold_depth: cy.int = 0 # Foldlevel stack depth after pushing a docstring fold.
     inside_toplevel_class: bint = False
 
     # String-related variables.
@@ -407,7 +425,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
         line_len: cy.int = len(line)
 
         # Go to first non-whitespce to find the indent level and identify empty strings.
-        ch: str
+        ch: cy.Py_UCS4 # A C character, so comparisons are fast C comparisons.
         i: cy.int
         for i in range(line_len):
             ch = line[i]
@@ -472,7 +490,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                             ends_with_triple_quote = True # Provisional; may toggle off.
                         elif ((i == indent_spaces or # Note in_string is false here.
                                i == indent_spaces + 1 and line[indent_spaces] == "r")
-                                            and not prev_line_has_a_continuation):
+                                            and not prev_line_has_a_continuation
+                                            and not nested):
                             begins_with_triple_quote = True
                             lines_since_begin_triple = 0
                         in_triple_quote_docstring = not in_triple_quote_docstring
@@ -488,7 +507,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                             ends_with_triple_quote = True # Provisional; may toggle off.
                         elif ((i == indent_spaces or # Note in_string is false here.
                                i == indent_spaces + 1 and line[indent_spaces] == "r")
-                                            and not prev_line_has_a_continuation):
+                                            and not prev_line_has_a_continuation
+                                            and not nested):
                             begins_with_triple_quote = True
                             lines_since_begin_triple = 0
                         in_single_quote_docstring = not in_single_quote_docstring
@@ -504,8 +524,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
             elif ch == ")": nest_parens -= 1; continue
             if ch == "[": nest_brackets += 1; continue
             elif ch == "]": nest_brackets -= 1; continue
-            if ch == "(": nest_braces += 1; continue
-            elif ch == ")": nest_braces -= 1; continue
+            if ch == "{": nest_braces += 1; continue
+            elif ch == "}": nest_braces -= 1; continue
 
         #
         # Back to loop over lines; calculate line's foldlevel based on computed info.
@@ -515,9 +535,6 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
             lines_since_end_triple = 0
         elif begins_with_triple_quote:
             lines_since_end_triple = -1 # Note -1 is a dummy value that means "unset."
-
-        if len(foldlevel_stack) == 1:
-            inside_toplevel_class = False
 
         # Now that the line is processed the indent_spaces values are just used to
         # detect dedents and to set fold values.  Set the indent_spaces of continuation
@@ -586,18 +603,29 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                                                 fold_indent_spaces_stack,
                                                 new_foldlevel,
                                                 new_fold_indent_spaces)
+            docstring_fold_depth = len(foldlevel_stack)
 
         # Process the end of module docstrings.
         if processing_docstring_indent and lines_since_end_triple == 0:
             # To not keep closing """ above, use lines_since_end_triple == 1, not 0.
             processing_docstring_indent = False
             _prev_indent_spaces: cy.int # Unused, but unpacked.
-            _prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
+            # Only pop the docstring's own fold; popping otherwise can corrupt the stack.
+            if len(foldlevel_stack) == docstring_fold_depth:
+                _prev_indent_spaces, prev_foldlevel = decrease_foldlevel(indent_spaces,
                                                        fold_indent_spaces_stack,
                                                        foldlevel_stack, docstring=True)
 
         if DEBUG:
             print("   processing_docstring_indent=", processing_docstring_indent, sep="")
+
+        # Toplevel code ends any toplevel class.  (Checking for an empty foldlevel
+        # stack instead fails, since the class fold is only pushed after its first
+        # body line.)
+        if (indent_spaces == 0 and not is_empty and not line_is_only_comment
+                and not prev_nested and not prev_in_string
+                and not prev_line_has_a_continuation):
+            inside_toplevel_class = False
 
         foldlevel = prev_foldlevel # The fallback value.
 
@@ -625,18 +653,18 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                 # e.g., a function def just after a function docstring.
                 just_after_fun_or_class_docstring = False
                 if not dedent: # Catch the case of fun with only docstring, no code.
-                    foldlevel = increase_foldlevel(foldlevel_stack,
-                                                   fold_indent_spaces_stack,
-                                                   new_foldlevel_copy,
-                                                   new_fold_indent_spaces_copy)
+                    foldlevel = increase_foldlevel(
+                            foldlevel_stack, fold_indent_spaces_stack, new_foldlevel_copy,
+                            get_body_fold_indent(new_fold_indent_spaces_copy, indent_spaces,
+                                                 line_is_only_comment, shiftwidth))
 
             if inside_fun_or_class_docstring:
                 if lines_of_fun_and_class_docstrings == 1:
                     inside_fun_or_class_docstring = False
-                    foldlevel = increase_foldlevel(foldlevel_stack,
-                                                   fold_indent_spaces_stack,
-                                                   new_foldlevel_copy,
-                                                   new_fold_indent_spaces_copy)
+                    foldlevel = increase_foldlevel(
+                            foldlevel_stack, fold_indent_spaces_stack, new_foldlevel_copy,
+                            get_body_fold_indent(new_fold_indent_spaces_copy, indent_spaces,
+                                                 line_is_only_comment, shiftwidth))
                 elif not in_string or ( # Docstring closed at end of line, repeat until.
                         lines_of_fun_and_class_docstrings != -1 and
                         lines_since_begin_triple >= lines_of_fun_and_class_docstrings-1):
@@ -651,24 +679,32 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
                 new_fold_indent_spaces_copy = new_fold_indent_spaces
                 new_foldlevel_copy = new_foldlevel
 
+                # A non-comment line not indented past the def line means an empty
+                # body (a syntax error), so no fold is started.
+                body_is_indented: bint = (line_is_only_comment
+                                          or indent_spaces >= new_fold_indent_spaces_copy)
+                body_fold_indent: cy.int = get_body_fold_indent(new_fold_indent_spaces_copy,
+                                                        indent_spaces, line_is_only_comment,
+                                                        shiftwidth)
+
                 if begins_with_triple_quote and lines_of_fun_and_class_docstrings != 0:
                     if in_string:
                         inside_fun_or_class_docstring = True
                     elif ends_with_triple_quote:
                         # Trigger `just_after_fun_or_class_docstring`, but on next line.
                         just_after_fun_or_class_docstring = True
-                    else:
+                    elif body_is_indented:
                         # Syntax error or single-quote docstring.
                         foldlevel = increase_foldlevel(foldlevel_stack,
                                                        fold_indent_spaces_stack,
                                                        new_foldlevel_copy,
-                                                       new_fold_indent_spaces_copy)
-                else:
+                                                       body_fold_indent)
+                elif body_is_indented:
                     # Function with no docstring.
                     foldlevel = increase_foldlevel(foldlevel_stack,
                                                    fold_indent_spaces_stack,
                                                    new_foldlevel_copy,
-                                                   new_fold_indent_spaces_copy)
+                                                   body_fold_indent)
 
             if inside_fun_or_class_def:
                 if not nested and not line_has_a_contination:
@@ -720,7 +756,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: List[
             lines_since_end_triple += 1
 
     # Handle the case where foldlevel of last line set to -5; replace sequence with 0.
-    if foldlevel_list[line_num] == -5:
+    if buffer_len and foldlevel_list[line_num] == -5:
         replace_preceding_minus_five_foldlevels(foldlevel_list, line_num, 0)
 
 
