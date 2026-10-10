@@ -64,8 +64,8 @@ on Windows with a recent Vim.  To check that your Vim has Python 3 support, run
 
    On Windows, use ``~/vimfiles`` in place of ``~/.vim``.
 
-   The plugin now works, using the pure-Python version.  The remaining steps
-   compile the faster Cython version, and are optional.
+   The plugin should now work, using the pure-Python version.  The remaining
+   steps compile the faster Cython version, and are optional.
 
 2. Compiling requires a C compiler and the Python development headers.  On
    Ubuntu or Debian systems you can type:
