@@ -319,7 +319,10 @@ Other settings
   the windows for the current buffer is convenient when you have multiple
   windows for a buffer.  It is only slightly slower than only updating the
   current buffer (the folds for each such window need to be set, but they only
-  need to be calculated once).
+  need to be calculated once).  The setting also applies to the automatic fold
+  update on leaving insert mode with the ``expr`` foldmethod; with the default
+  of 0, other windows showing the same buffer keep their old folds until they
+  are updated, such as with ``zuz``.
 
 * To completely disable loading of the Cyfolds plugin use this in your
   ``.vimrc``:

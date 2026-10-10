@@ -206,7 +206,7 @@ endfunction
 " ==== Turn off fold updating in insert mode, and update after TextChanged.  ===
 " ==============================================================================
 
-" TODO: Document the new behavior.  If g:cyfolds_update_all_windows_for_buffer
+" Note that if g:cyfolds_update_all_windows_for_buffer
 " is set to 1 then on exiting insert mode all windows for the modified buffer
 " which have `expr` set as the foldmethod have their folds updated.
 
