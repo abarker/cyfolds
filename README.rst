@@ -12,7 +12,12 @@ API view of the code.
 
 The plugin is written in Cython and compiles to optimized C code for fast
 performance.  The full file is parsed to find the syntax, so no heuristics are
-needed and the folding is always computed correctly.
+needed and the folding is always computed correctly.  A pure-Python version is
+also included and is used automatically if the Cython version has not been
+compiled.  The compiled version is roughly 20 times faster: on a 9,600-line
+test file it calculates the folds in about 5 milliseconds, versus about 90
+milliseconds for the pure-Python version.  The pure-Python version is fast
+enough for most files, but compiling is recommended for large files.
 
 A screenshot of some example code with folding is shown here:
 
@@ -28,7 +33,7 @@ A screenshot of some example code with folding is shown here:
 Folding can be customized to occur for various keywords, and the number of
 docstring lines to show can be modified.  By default all the text in docstrings
 is left unfolded after definitions with the ``class``, ``def``, or ``async
-def`` keywords, and full module doctrings are shown.
+def`` keywords, and full module docstrings are shown.
 
 Cyfolds turns off folding in insert mode and restores it on leaving insert
 mode.  This is because by default, when in insert mode, Vim updates the folds
@@ -38,17 +43,32 @@ Installation
 ------------
 
 Cyfolds requires a Vim that is compiled with Python 3 support and timer
-support.  It has currently only been compiled and tested on Vim 8.0 and Neovim
-0.2.2 on Ubuntu Linux and on Vim 7.4 on Mint Linux.  It should work with any
-recent Linux and Vim distribution, as well as on Windows with a recent Vim.
+support.  It has been tested with Vim 9.1 and Python 3.12 on Ubuntu 24.04, and
+earlier with Vim 8.0 and Neovim 0.2.2 on Ubuntu Linux and Vim 7.4 on Mint
+Linux.  It should work with any recent Linux and Vim distribution, as well as
+on Windows with a recent Vim.  To check that your Vim has Python 3 support, run
+``vim --version`` and look for ``+python3``.
 
-1. If you use the builtin Vim 8 package manager just clone this GitHub repo
-   into your ``~/.vim/pack/plugins/start`` directory.  Similarly, if you use
-   pathogen just clone this GitHub repo into the ``~/.vim/bundle`` directory.
+1. Clone this GitHub repo into your Vim packages directory.  If you use the
+   builtin Vim 8+ package manager:
 
-2. The C code produced by Cython needs to be compiled before use.  In order to
-   compile the code you need to have a C compiler installed.  On Ubuntu or
-   Debian systems you can type:
+   .. code-block:: bash
+
+      git clone https://github.com/abarker/cyfolds.git ~/.vim/pack/plugins/start/cyfolds
+
+   If you use pathogen:
+
+   .. code-block:: bash
+
+      git clone https://github.com/abarker/cyfolds.git ~/.vim/bundle/cyfolds
+
+   On Windows, use ``~/vimfiles`` in place of ``~/.vim``.
+
+   The plugin now works, using the pure-Python version.  The remaining steps
+   compile the faster Cython version, and are optional.
+
+2. Compiling requires a C compiler and the Python development headers.  On
+   Ubuntu or Debian systems you can type:
 
    .. code-block:: bash
 
@@ -56,37 +76,66 @@ recent Linux and Vim distribution, as well as on Windows with a recent Vim.
 
    On Windows the free MinGW compiler is one option.  To install it, see
    https://cython.readthedocs.io/en/latest/src/tutorial/appendix.html.
-   For Mac OS X systems the Cython install page suggests Apple's XCode
+   For macOS systems the Cython install page suggests Apple's Xcode
    compiler: https://developer.apple.com/.
 
-3. After you have the compiler set up, the Python build requirements
-   are Cython and setuptools.  This command installs them:
+3. Compiling also requires the Cython and setuptools Python packages.  They are
+   only needed to compile, not to run the plugin.  The compiled module only
+   works with the Python version used to compile it, so that must be the same
+   Python version that Vim uses (run ``:py3 import sys; print(sys.version)`` in
+   Vim to see it).  Cython 0.29 and 3.x both work.
+
+   Use whichever of these ways to install them fits your Python setup:
+
+   * On Ubuntu or Debian, install the system packages:
+
+     .. code-block:: bash
+
+        sudo apt-get install cython3 python3-setuptools
+
+     Then use the system Python, ``/usr/bin/python3``, to compile in the next
+     step.
+
+   * If you work in a virtual environment based on the same Python version
+     that Vim uses, install them into it:
+
+     .. code-block:: bash
+
+        pip install cython setuptools
+
+   * Otherwise, create a temporary virtual environment just for compiling:
+
+     .. code-block:: bash
+
+        python3 -m venv ~/cyfolds-build-venv
+        ~/cyfolds-build-venv/bin/pip install cython setuptools
+
+     Then use ``~/cyfolds-build-venv/bin/python`` to compile in the next step.
+     (On Windows it is ``~/cyfolds-build-venv/Scripts/python``.)  The virtual
+     environment can be deleted after compiling.
+
+   Note that ``pip install --user`` is refused on many recent Linux
+   distributions, and in virtual environments.
+
+4. Run the ``compile.py`` script in the repo's ``python3`` subdirectory, using
+   the Python from the previous step:
 
    .. code-block:: bash
 
-      pip install "cython<3.0" setuptools --user --upgrade
+      python3 ~/.vim/pack/plugins/start/cyfolds/python3/compile.py
 
-   Note that the plugin does not work with Cython 3.0 for some reason
-   (string handling was changed).
-
-4. Now change directories and go to the cloned repo and into the ``python3``
-   subdirectory.   Run the Python script named ``compile.py`` that is located
-   in that directory:
-   
-   .. code-block:: bash
-
-      python3 ./compile.py
-      
-   In Linux just ``./compile.py`` should work.  You can alternately run
+   The script prints the Python version it compiled for, and offers to remove
+   the intermediate build files.  You can alternately run
 
    .. code-block:: bash
-   
+
       python3 setup.py build_ext --inplace
-      
-   directly from the command line.  To modify the compile options, look in the
-   ``setup.py`` file.
 
-The plugin is now ready to use in Vim.
+   from inside the ``python3`` directory.  To modify the compile options, look
+   in the ``setup.py`` file.
+
+The plugin is now ready to use in Vim.  If the compiled module does not match
+Vim's Python version, the pure-Python version is used instead.
 
 Configuration
 -------------
@@ -98,8 +147,10 @@ Turn on folding in Vim, and plugins in general if you haven't already:
   set foldenable
   filetype plugin on
 
-Python indentations are assumed to occur at multiples of the value of
-the ``shiftwidth`` setting.  Usually ``set shiftwidth=4`` is used for Python code.
+Foldlevels are calculated from the indentation divided by the ``shiftwidth``
+setting, so ``shiftwidth`` should match the indentation used in the code.
+Usually ``set shiftwidth=4`` is used for Python code.  Code with other
+indentations, such as three spaces, is still folded correctly.
 
 These commands can go into your ``.vimrc`` to always be set.  Python files
 should then appear in Vim with Cyfolds folding, set to the default parameters.
@@ -412,3 +463,15 @@ Python buffers is recommended.  The FastFold ``.vimrc`` command for that is:
 
    let fastfold_skip_filetypes=['python']
 
+Running the tests
+-----------------
+
+The tests use pytest.  From the repo's root directory, run:
+
+.. code-block:: bash
+
+   pytest test
+
+The tests check both the pure-Python version and the compiled Cython version
+(when it has been compiled), and also run the plugin in a headless Vim if one
+with Python 3 support is installed.
