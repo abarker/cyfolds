@@ -336,6 +336,21 @@ cdef cy.int is_nested(nest_parens: cy.int, nest_brackets: cy.int,
     """Combine the separate nesting levels into a single test for nestedness."""
     return nest_parens or nest_brackets or nest_braces
 
+
+cdef bint only_strings_follow(line: str, i: cy.int,
+                              last_non_whitespace_index: cy.int):
+    """Return true if only another string or a comment follows the string which
+    ends at index `i`.  This is used to find docstrings made of concatenated
+    strings, and to reject strings with operators after them."""
+    i += 1
+    while i <= last_non_whitespace_index and (line[i] == " " or line[i] == "\t"):
+        i += 1
+    if i > last_non_whitespace_index:
+        return True
+    if line[i] in "rRuU": # A string prefix.
+        return i < last_non_whitespace_index and line[i+1] in "\"'"
+    return line[i] in "\"'#"
+
 #
 # The main function for calculating foldlevels.
 #
@@ -400,6 +415,10 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: objec
     begins_with_triple_quote: bint = False # Begins with non-nested, not-in-string """.
     ends_with_triple_quote: bint = False # Ends with non-nested, in-string triple quote.
     ends_with_colon: bint = False # Ends with non-nested, not-in-string colon.
+    begins_with_string: bint = False # Begins with a non-nested string, maybe prefixed.
+    only_strings_on_line: bint = False # Only strings (and a comment) on the logical line.
+    starts_line: bint = False # The string starting at the current char begins the line.
+    first_char_is_string_prefix: bint = False # First char of line is r, R, u, or U.
 
     # Loop over the lines.
     line_num: cy.int = -1
@@ -419,6 +438,8 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: objec
             begins_with_triple_quote = False
             ends_with_triple_quote = False
             ends_with_colon = False
+            begins_with_string = False
+            only_strings_on_line = False # Set when a string begins the line.
             indent_spaces = 0
             line_is_only_comment = False
 
@@ -433,6 +454,7 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: objec
                 indent_spaces = i
                 if not in_string and ch == "#":
                     line_is_only_comment = True
+                first_char_is_string_prefix = ch in "rRuU" # Docstrings can have these.
                 break
         else: # nobreak
             is_empty = True
@@ -483,38 +505,56 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: objec
 
             # Strings.
             elif ch == '"' and not char_is_escaped:
+                starts_line = (not in_string and not nested
+                               and not prev_line_has_a_continuation
+                               and (i == indent_spaces or i == indent_spaces + 1
+                                    and first_char_is_string_prefix))
+                if starts_line:
+                    begins_with_string = True
+                    only_strings_on_line = True
                 if (i + 2 < line_len and line[i+1] == '"' and line[i+2] == '"'
                         and not in_triple_quote_string): # Note """ can be concat like " ""
                     if in_triple_quote_docstring or not in_string:
                         if in_single_quote_docstring or in_triple_quote_docstring:
                             ends_with_triple_quote = True # Provisional; may toggle off.
-                        elif ((i == indent_spaces or # Note in_string is false here.
-                               i == indent_spaces + 1 and line[indent_spaces] == "r")
-                                            and not prev_line_has_a_continuation
-                                            and not nested):
+                        elif starts_line: # Note in_string is false here.
                             begins_with_triple_quote = True
                             lines_since_begin_triple = 0
                         in_triple_quote_docstring = not in_triple_quote_docstring
                     i += 2
                 elif in_triple_quote_string or not in_string:
                     in_triple_quote_string = not in_triple_quote_string
+                if only_strings_on_line and not is_in_string(
+                        in_single_quote_string, in_single_quote_docstring,
+                        in_triple_quote_string, in_triple_quote_docstring):
+                    only_strings_on_line = only_strings_follow(line, i,
+                                                               last_non_whitespace_index)
                 continue
             elif ch == "'" and not char_is_escaped:
+                starts_line = (not in_string and not nested
+                               and not prev_line_has_a_continuation
+                               and (i == indent_spaces or i == indent_spaces + 1
+                                    and first_char_is_string_prefix))
+                if starts_line:
+                    begins_with_string = True
+                    only_strings_on_line = True
                 if (i + 2 < line_len and line[i+1] == "'" and line[i+2] == "'"
                         and not in_single_quote_string): # Note ''' can be concat like ' ''
                     if in_single_quote_docstring or not in_string:
                         if in_single_quote_docstring or in_triple_quote_docstring:
                             ends_with_triple_quote = True # Provisional; may toggle off.
-                        elif ((i == indent_spaces or # Note in_string is false here.
-                               i == indent_spaces + 1 and line[indent_spaces] == "r")
-                                            and not prev_line_has_a_continuation
-                                            and not nested):
+                        elif starts_line: # Note in_string is false here.
                             begins_with_triple_quote = True
                             lines_since_begin_triple = 0
                         in_single_quote_docstring = not in_single_quote_docstring
                     i += 2
                 elif in_single_quote_string or not in_string:
                     in_single_quote_string = not in_single_quote_string
+                if only_strings_on_line and not is_in_string(
+                        in_single_quote_string, in_single_quote_docstring,
+                        in_triple_quote_string, in_triple_quote_docstring):
+                    only_strings_on_line = only_strings_follow(line, i,
+                                                               last_non_whitespace_index)
                 continue
 
             if in_string: # No chars in strings matter except end quotes and escapes.
@@ -687,14 +727,16 @@ cdef void calculate_foldlevels(foldlevel_list: List[cy.int], buffer_lines: objec
                                                         indent_spaces, line_is_only_comment,
                                                         shiftwidth)
 
-                if begins_with_triple_quote and lines_of_fun_and_class_docstrings != 0:
+                if begins_with_string and lines_of_fun_and_class_docstrings != 0:
                     if in_string:
                         inside_fun_or_class_docstring = True
-                    elif ends_with_triple_quote:
+                    elif (only_strings_on_line and not nested
+                              and not line_has_a_contination):
+                        # A one-line docstring, possibly of concatenated strings.
                         # Trigger `just_after_fun_or_class_docstring`, but on next line.
                         just_after_fun_or_class_docstring = True
                     elif body_is_indented:
-                        # Syntax error or single-quote docstring.
+                        # Not a docstring, such as a string with an operator after it.
                         foldlevel = increase_foldlevel(foldlevel_stack,
                                                        fold_indent_spaces_stack,
                                                        new_foldlevel_copy,

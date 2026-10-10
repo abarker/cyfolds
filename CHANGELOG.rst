@@ -21,6 +21,9 @@ Bug fixes:
 * An empty body after a fold keyword could start a fold on a later line.
 * With ``g:cyfolds_increase_toplevel_non_class_foldlevels`` set, class methods
   also got the extra foldlevel.
+* Docstrings in single quotes, with ``u`` or capital ``R`` prefixes, or made of
+  strings concatenated on one line were folded.  A string with an operator after
+  it, like ``"""a""" + x``, could be treated as a docstring.
 
 2020-07-30
 ----------

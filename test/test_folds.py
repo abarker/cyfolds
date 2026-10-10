@@ -7,6 +7,7 @@ Run with `pytest` from the project root or the `test` directory."""
 # License details (MIT) can be found in the file LICENSE.
 #==============================================================================
 
+import ast
 import glob
 import importlib
 import os
@@ -405,6 +406,54 @@ def test_docstring_detection_matches_python(folds):
             x = 1
         '''
     assert folds(code) == [0, 0, 0, 1, 0, 1, 1, 0, 1, 1]
+
+
+# Each case is the body of a function, starting with what might be a docstring.
+DOCSTRING_CASES = [
+    ['"""Doc."""'], ['"Doc."'], ["'Doc.'"], ["''"], ['"Doc " "string."'],
+    ['"""a""" """b"""'], ['"a" r"b"'], ['u"""Doc."""'], ['R"""Doc."""'], ['U"Doc."'],
+    [r'r"Doc \d."'], ['"""Doc."""  # Comment.'], ['"Doc."  # Comment.'],
+    [r'"a \"quoted\" doc."'], [r"'it\'s doc.'"], ['"""Doc', 'more."""'],
+    ['"a" + "b"'], ['"""a""" + """b"""'], ['"""Doc""".format(x)'], ['"""Doc""" % x'],
+    ['"Doc", 1'], ['"Doc"[0]'], ['"Doc".strip()'], ['"Doc" "x".join(y)'],
+    ['"a" f"b"'], ['f"Not doc."'], ['b"Not doc."'], ['rb"Not doc."'], ['Rb"Not doc."'],
+    ['r = 1'], ['u.x = 1'], ['rx = "a"'],
+    ]
+
+# Cases where the folds do not match Python, known limitations.
+DOCSTRING_CASES += [pytest.param(body, marks=pytest.mark.xfail(reason=reason, strict=True))
+                    for body, reason in [
+    (['"""Doc.""";  x = 1'], "Statements after a semicolon are not handled."),
+    (['"""Doc', 'more.""".strip()'], "The fold is set before the operator is seen."),
+    (['("Doc "', ' "string.")'], "Multi-line concatenation is not handled."),
+    (['"Doc " \\', '"string."'], "Multi-line concatenation is not handled."),
+    ]]
+
+@pytest.mark.parametrize("body", DOCSTRING_CASES,
+                         ids=lambda body: " / ".join(body))
+def test_docstrings_match_python(folds, body):
+    """A function's first statement is left unfolded exactly when Python treats
+    it as a docstring."""
+    lines = ["def f():"] + ["    " + line for line in body] + ["    x = 1"]
+    function = ast.parse("\n".join(lines)).body[0]
+    is_docstring = ast.get_docstring(function) is not None
+    result = folds(lines)
+    is_unfolded = all(level == 0 for level in result[1:1 + len(body)])
+    assert is_unfolded == is_docstring
+
+
+def test_one_line_docstrings_with_settings(folds):
+    """One-line docstrings of any quote style follow the docstring settings."""
+    code = """\
+        def f():
+            'Doc.'
+            x = 1
+        def g():
+            "Doc " "string."
+            x = 1
+        """
+    assert folds(code) == [0, 0, 1, 0, 0, 1]
+    assert folds(code, lines_of_fun_and_class_docstrings=0) == [0, 1, 1, 0, 1, 1]
 
 
 def test_tab_indents(folds):
