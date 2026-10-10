@@ -389,6 +389,24 @@ def test_syntax_inside_strings_is_ignored(folds):
     assert folds(code) == [0, 1, 1, 1, 0]
 
 
+def test_docstring_detection_matches_python(folds):
+    """A docstring after empty lines is still a docstring, as in Python, while
+    f-strings and b-strings are not docstrings."""
+    code = '''\
+        def f():
+
+            """Docstring."""
+            x = 1
+        def g():
+            f"""Not a docstring."""
+            x = 1
+        def h():
+            b"""Not a docstring."""
+            x = 1
+        '''
+    assert folds(code) == [0, 0, 0, 1, 0, 1, 1, 0, 1, 1]
+
+
 def test_tab_indents(folds):
     """Tab indents are handled."""
     code = "def f():\n\tif x:\n\t\treturn 1\n\treturn 2\ny = 1"
