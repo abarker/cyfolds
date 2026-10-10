@@ -21,7 +21,11 @@ files in the directory.
 #==============================================================================
 
 import glob, os, sys
-from run_with_mocked_vim import get_fold_list
+try:
+    from run_with_mocked_vim import get_fold_list
+except ImportError: # The Cython module has not been compiled.
+    import pytest
+    pytest.skip("Module cyfolds is not compiled.", allow_module_level=True)
 
 def compare_folds_with_saved_data(verbose=False):
     """Compare the computed folds with the saved data, returning true if an
