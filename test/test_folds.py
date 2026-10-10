@@ -125,6 +125,24 @@ def test_three_space_indent_with_docstring(folds):
     assert folds(code) == [0, 0, 1, 1, 1, 1, 1]
 
 
+def test_three_space_indent_with_blank_docstring_and_else(folds):
+    """Same as above, with a blank docstring followed by comments."""
+    code = '''\
+        def always_on_top(sleeptime, title=None):
+           """ """
+           # Sleep for the given time.
+           time.sleep(sleeptime)
+
+           # If title is provided, run wmctrl in the background.
+           if title:
+               subprocess.Popen(["wmctrl", "-r", title])
+           else:
+               # Otherwise, run wmctrl on the active window.
+               subprocess.Popen(["wmctrl", "-r", ":ACTIVE:"])
+        '''
+    assert folds(code) == [0, 0] + [1] * 9
+
+
 def test_three_space_indent_after_multiline_argument(folds):
     """A dedent after a parenthesized, multiline string argument must not end
     the fold when the indent is three spaces."""
@@ -375,6 +393,25 @@ def test_tab_indents(folds):
     """Tab indents are handled."""
     code = "def f():\n\tif x:\n\t\treturn 1\n\treturn 2\ny = 1"
     assert folds(code.splitlines()) == [0, 1, 1, 1, 0]
+
+
+@pytest.mark.parametrize("shiftwidth", [4, 8])
+def test_tab_indents_with_nested_blocks(folds, shiftwidth):
+    """Tab-indented functions with blank lines and nested blocks fold fully."""
+    code = ("def main():\n"
+            "\n"
+            "\toption = ''\n"
+            "\tfor i in range(1, lth - 1) :\n"
+            "\t\tif (sys.argv[i] == '-f') :\n"
+            "\t\t\toption = sys.argv[i]\n"
+            "\t\telif (sys.argv[i] == '-h') :\n"
+            "\t\t\thtml = ' --html '\n"
+            "\n"
+            "\tif (option == ''):\n"
+            "\t\toption = '-f'\n"
+            "\n"
+            "x = 1")
+    assert folds(code.splitlines(), shiftwidth=shiftwidth) == [0] + [1] * 10 + [0, 0]
 
 
 #
