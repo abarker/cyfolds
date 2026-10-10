@@ -21,8 +21,9 @@ is tested by this program.
 # License details (MIT) can be found in the file LICENSE.
 #==============================================================================
 
-import sys
-sys.path.insert(1,"../python3")
+import os, sys
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "python3"))
 
 import cyfolds
 from cyfolds import get_foldlevels, setup_regex_pattern

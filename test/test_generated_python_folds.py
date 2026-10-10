@@ -23,11 +23,14 @@ files in the directory.
 import glob, os, sys
 from run_with_mocked_vim import get_fold_list
 
-def test_on_files(verbose=False):
+def compare_folds_with_saved_data(verbose=False):
+    """Compare the computed folds with the saved data, returning true if an
+    error was found."""
     if verbose:
         print("\nComparing generated folds with saved data...")
 
-    data_file_names = glob.glob("*.testdata")
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    data_file_names = glob.glob(os.path.join(test_dir, "*.testdata"))
     error_found = False
     for data_file_name in data_file_names:
         if verbose:
@@ -53,9 +56,13 @@ def test_on_files(verbose=False):
                 #sys.exit(1)
     return error_found
 
+def test_on_files():
+    """The computed folds match the saved fold data."""
+    assert not compare_folds_with_saved_data()
+
 if __name__ == "__main__":
 
-    error_found = test_on_files(verbose=True)
+    error_found = compare_folds_with_saved_data(verbose=True)
     print()
     print("Tests done and passed." if not error_found else "Tests FAILED")
 
