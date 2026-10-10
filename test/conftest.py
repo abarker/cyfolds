@@ -4,9 +4,6 @@ import sys
 
 import pytest
 
-# This directory holds a Cython experiment run from inside Vim, not pytest tests.
-collect_ignore = ["test_cython_simple"]
-
 
 @pytest.fixture(autouse=True)
 def restore_default_fold_keywords():
